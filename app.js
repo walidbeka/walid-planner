@@ -35,7 +35,11 @@ function signInWithGoogle() {
                 localStorage.setItem('wp_allowed_email', email);
             }
             currentUser = result.user;
-            db.collection('users').doc(result.user.uid).set({ email: result.user.email, name: result.user.displayName || '' }, { merge: true }).catch(() => {});
+            db.collection('users').doc(result.user.uid).set({ email: result.user.email, name: result.user.displayName || '' }, { merge: true }).then(() => {
+                console.log('✅ User saved to Firestore:', result.user.uid);
+            }).catch(err => {
+                console.warn('❌ Failed to save user:', err.message);
+            });
             errorEl.textContent = '';
             initApp();
         })
@@ -1126,7 +1130,11 @@ firebase.auth().onAuthStateChanged(user => {
         }
         currentUser = user;
         // حفظ UID المستخدم في Firebase عشان الـ Action يعرف يقرا المهام
-        db.collection('users').doc(user.uid).set({ email: user.email, name: user.displayName || '' }, { merge: true }).catch(() => {});
+        db.collection('users').doc(user.uid).set({ email: user.email, name: user.displayName || '' }, { merge: true }).then(() => {
+            console.log('✅ User saved to Firestore:', user.uid);
+        }).catch(err => {
+            console.warn('❌ Failed to save user:', err.message);
+        });
         document.getElementById('login-screen').style.display = 'none';
         document.getElementById('app').style.display = 'flex';
         document.getElementById('user-name').textContent = user.displayName || 'المستخدم';

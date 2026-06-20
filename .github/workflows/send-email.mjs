@@ -16,7 +16,7 @@ function api(method, url, token, body, ct) {
       let data = '';
       res.on('data', c => data += c);
       res.on('end', () => {
-        try { const j = JSON.parse(data); if (res.statusCode >= 400) reject({ status: res.statusCode, msg: j.error?.message || JSON.stringify(j) }); else resolve(j); }
+        try { const j = JSON.parse(data); if (res.statusCode >= 400) reject({ status: res.statusCode, body: j }); else resolve(j); }
         catch(e) { reject({ status: res.statusCode, text: data }); }
       });
     });
@@ -49,17 +49,35 @@ async function main() {
     const todayStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
     console.log('Date:', todayStr);
 
-    // 1. نجيب المستخدمين من Firestore (الموقع بيحفظ user doc بعد تسجيل الدخول)
-    const usersRes = await api('GET', fb + '/documents/users', token);
+    // Debug: نجيب كل الـ collections اللي موجودة
+    try {
+      const cols = await api('POST', fb + '/documents:listCollectionIds', token, '{"pageSize":50}');
+      console.log('Collections:', cols.collectionIds || []);
+    } catch(e) { console.log('List collections error:', e.body?.error?.message || e.text); }
+
+    // 1. نجيب المستخدمين
+    let usersRes;
+    try {
+      usersRes = await api('GET', fb + '/documents/users', token);
+      console.log('Users response:', JSON.stringify(usersRes).slice(0, 500));
+    } catch(e) {
+      console.log('Error reading users:', e.body?.error?.message || e.text);
+      usersRes = {};
+    }
     const uids = (usersRes.documents || []).map(d => d.name.split('/').pop());
-    console.log('Users from Firestore:', uids);
+    console.log('Found UIDs:', uids);
 
     if (uids.length === 0) {
-      console.log('No users found. افتح الموقع مرة على الأقل عشان يحفظ اليوزر.');
+      // Try to find tasks directly without UID - collection group
+      try {
+        const cg = await api('POST', fb + '/documents:runQuery', token,
+          JSON.stringify({ structuredQuery: { from: [{ collectionId: 'tasks', allDescendants: true }], limit: 5 } }));
+        console.log('CG query result:', JSON.stringify(cg).slice(0, 500));
+      } catch(e) { console.log('CG query error:', e.body?.error?.message || JSON.stringify(e.body).slice(0, 300)); }
       return;
     }
 
-    // 2. نجيب المهام لكل مستخدم
+    // 2. نجيب المهام
     const allTasks = [];
     for (const uid of uids) {
       let page = '';
@@ -91,12 +109,11 @@ async function main() {
     if (todayTasks.length) { body += '📅 مهام اليوم (' + todayTasks.length + '):\n'; todayTasks.forEach(t => { body += '- ' + t.name + '\n'; }); }
     if (overdueTasks.length) { body += '\n🔴 مهام متأخرة (' + overdueTasks.length + '):\n'; overdueTasks.forEach(t => { body += '- ' + t.name + ' (تاريخها: ' + t.date + ')' + '\n'; }); }
 
-    // 3. إرسال الإيميل
     await api('POST', 'https://formsubmit.co/ajax/' + encodeURIComponent(toEmail), null,
       JSON.stringify({ subject: 'Walid Planner - تذكير يومي', message: body }));
     console.log('✅ Email sent!');
   } catch(e) {
-    console.error('Error:', e.msg || e.text || JSON.stringify(e).slice(0, 300));
+    console.error('Error:', e.body?.error?.message || e.text || JSON.stringify(e).slice(0, 300));
     process.exit(1);
   }
 }
