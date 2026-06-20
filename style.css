@@ -484,8 +484,9 @@ body {
     background: var(--bg-card); box-shadow: var(--shadow-lg);
     display: flex; flex-direction: column;
     transform: translateX(100%); transition: transform 0.3s ease;
-    border-left: 1px solid var(--border);
+    border-right: 1px solid var(--border);
 }
+[data-theme="dark"] .notif-panel { border-right-color: var(--border); }
 .notif-panel.open { transform: translateX(0); }
 .notif-header {
     display: flex; align-items: center; justify-content: space-between;
@@ -504,7 +505,7 @@ body {
 
 /* === Toast === */
 .toast-container {
-    position: fixed; bottom: 80px; left: 16px; z-index: 999;
+    position: fixed; bottom: 80px; right: 16px; z-index: 999;
     display: flex; flex-direction: column; gap: 8px;
 }
 .toast {
@@ -551,6 +552,35 @@ body {
 .kanban-card .k-title { font-size: 13px; font-weight: 600; }
 .kanban-card .k-meta { display: flex; gap: 4px; margin-top: 6px; font-size: 10px; }
 
+/* === إدارة المشاريع === */
+.project-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+.project-tag {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px 10px; border-radius: 12px; font-size: 12px;
+    background: var(--bg-input); cursor: pointer;
+}
+.project-tag:hover { background: var(--border); }
+.project-tag .tag-remove {
+    cursor: pointer; font-size: 14px; line-height: 1;
+    color: var(--text-muted);
+}
+.project-tag .tag-remove:hover { color: var(--danger); }
+.project-manager-item {
+    display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
+    padding: 10px 12px; border-bottom: 1px solid var(--border-light);
+}
+.project-manager-name { flex: 1; font-size: 14px; font-weight: 500; }
+.project-manager-actions { display: flex; gap: 2px; }
+.project-edit-form {
+    display: flex; gap: 6px; align-items: center;
+    padding: 8px 0; width: 100%;
+}
+.project-edit-form input {
+    flex: 1; padding: 6px 10px; border: 1.5px solid var(--border);
+    border-radius: 6px; font-size: 13px; font-family: var(--font);
+    background: var(--bg-input); color: var(--text);
+}
+
 /* === شاشات كبيرة === */
 @media (min-width: 768px) {
     .sidebar { right: 0 !important; position: fixed; }
@@ -562,7 +592,7 @@ body {
     .home-sections { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
     .modal-overlay { align-items: center; }
     .modal { border-radius: var(--radius-lg); }
-    .toast-container { right: calc(var(--sidebar-width) + 16px); }
+    .toast-container { left: auto; right: calc(var(--sidebar-width) + 16px); }
 }
 
 @media (min-width: 1024px) {

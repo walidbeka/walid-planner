@@ -340,6 +340,19 @@
                         </div>
                     </div>
                     <div class="card">
+                        <h3>📁 إدارة المشاريع</h3>
+                        <div class="setting-item">
+                            <span>💼 مشاريع العمل</span>
+                            <button class="btn btn-sm btn-primary" onclick="openProjectManager('work')">إدارة</button>
+                        </div>
+                        <div id="project-list-work" class="project-tags" style="margin-bottom:12px"></div>
+                        <div class="setting-item">
+                            <span>🏠 مشاريع شخصية</span>
+                            <button class="btn btn-sm btn-primary" onclick="openProjectManager('personal')">إدارة</button>
+                        </div>
+                        <div id="project-list-personal" class="project-tags" style="margin-bottom:12px"></div>
+                    </div>
+                    <div class="card">
                         <h3>📊 النسخ الاحتياطي</h3>
                         <div class="setting-item">
                             <span>تصدير إلى Excel</span>
@@ -448,6 +461,29 @@
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeTaskModal()">إلغاء</button>
                 <button class="btn btn-primary" id="modal-save-btn" onclick="saveTask()">💾 حفظ المهمة</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== مودال إدارة المشاريع ==================== -->
+    <div class="modal-overlay" id="project-modal" style="display:none" onclick="closeModalOnOverlay(event)">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="project-modal-title">إدارة المشاريع</h2>
+                <button class="icon-btn" onclick="closeProjectModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>إضافة مشروع جديد</label>
+                    <div style="display:flex;gap:8px">
+                        <input type="text" id="project-name-input" placeholder="اسم المشروع" style="flex:1">
+                        <button class="btn btn-primary" onclick="saveNewProject()">➕ إضافة</button>
+                    </div>
+                </div>
+                <div id="project-modal-list" style="margin-top:16px"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeProjectModal()">إغلاق</button>
             </div>
         </div>
     </div>

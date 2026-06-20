@@ -6,6 +6,7 @@
 // ==================== الحالة العامة ====================
 let currentUser = null;
 let tasks = [];
+let projects = { work: ['Bruce Group', 'WDY Media', 'DOYA'], personal: ['المنزل', 'السيارة', 'العائلة', 'الأمور المالية'] };
 let editingTaskId = null;
 let currentFilter = 'all';
 let currentView = 'list';
@@ -13,11 +14,6 @@ let calendarDate = new Date();
 let selectedDate = null;
 let allNotifications = [];
 let confirmCallback = null;
-
-const PROJECTS = {
-    work: ['Bruce Group', 'WDY Media', 'DOYA'],
-    personal: ['المنزل', 'السيارة', 'العائلة', 'الأمور المالية']
-};
 
 const MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
 
@@ -63,6 +59,7 @@ function initApp() {
     document.getElementById('settings-email').value = localStorage.getItem('wp_allowed_email') || currentUser.email;
     applySavedTheme();
     updateProjectsDropdown();
+    loadProjects();
     loadTasks();
     setupDailyReminder();
     requestNotificationPermission();
@@ -119,6 +116,53 @@ function getTaskDocRef(taskId) {
     return db.collection('users').doc(currentUser.uid).collection('tasks').doc(taskId);
 }
 
+// ==================== المشاريع — تحميل وإدارة ====================
+function loadProjects() {
+    if (!currentUser) return;
+    const ref = db.collection('users').doc(currentUser.uid).collection('projects');
+    ref.onSnapshot(snapshot => {
+        const work = []; const personal = [];
+        snapshot.forEach(doc => {
+            const p = doc.data();
+            if (p.type === 'work') work.push(p.name);
+            else personal.push(p.name);
+        });
+        if (work.length) projects.work = work;
+        if (personal.length) projects.personal = personal;
+        updateProjectsDropdown();
+        renderProjects();
+    });
+}
+
+function addProject(name, type) {
+    if (!currentUser || !name.trim()) return;
+    db.collection('users').doc(currentUser.uid).collection('projects').add({ name: name.trim(), type, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+    showToast('✅ تم إضافة المشروع', 'success');
+}
+
+function editProject(oldName, newName, type) {
+    if (!currentUser || !newName.trim()) return;
+    const ref = db.collection('users').doc(currentUser.uid).collection('projects');
+    ref.where('name', '==', oldName).where('type', '==', type).get().then(snap => {
+        snap.forEach(doc => { doc.ref.update({ name: newName.trim() }); });
+    });
+    // تحديث اسم المشروع في المهام المرتبطة
+    const tasksRef = db.collection('users').doc(currentUser.uid).collection('tasks');
+    tasksRef.where('project', '==', oldName).get().then(snap => {
+        snap.forEach(doc => { doc.ref.update({ project: newName.trim() }); });
+    });
+    showToast('✅ تم تعديل اسم المشروع', 'success');
+}
+
+function deleteProject(name, type) {
+    if (!currentUser) return;
+    const ref = db.collection('users').doc(currentUser.uid).collection('projects');
+    ref.where('name', '==', name).where('type', '==', type).get().then(snap => {
+        snap.forEach(doc => { doc.ref.delete(); });
+    });
+    showToast('🗑️ تم حذف المشروع', 'success');
+}
+
 // ==================== المهام — إضافة / حفظ ====================
 function openAddTaskModal(data) {
     editingTaskId = null;
@@ -166,13 +210,13 @@ function updateProjectsDropdown() {
     const sel = document.getElementById('task-project');
     const currentVal = sel.value;
     sel.innerHTML = '';
-    (PROJECTS[type] || []).forEach(p => {
+    (projects[type] || []).forEach(p => {
         const opt = document.createElement('option');
         opt.value = p;
         opt.textContent = p;
         sel.appendChild(opt);
     });
-    if (currentVal && PROJECTS[type].includes(currentVal)) sel.value = currentVal;
+    if (currentVal && projects[type].includes(currentVal)) sel.value = currentVal;
 }
 
 function saveTask() {
@@ -267,6 +311,76 @@ function duplicateTask(taskId) {
 function todayStr() {
     const d = new Date();
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+// ==================== إدارة المشاريع — المودال ====================
+let projectManagerType = 'work';
+
+function openProjectManager(type) {
+    projectManagerType = type;
+    const label = type === 'work' ? '💼 مشاريع العمل' : '🏠 المشاريع الشخصية';
+    document.getElementById('project-modal-title').textContent = 'إدارة ' + label;
+    document.getElementById('project-name-input').value = '';
+    document.getElementById('project-modal').style.display = 'flex';
+    renderProjectList();
+}
+
+function closeProjectModal() {
+    document.getElementById('project-modal').style.display = 'none';
+}
+
+function renderProjectList() {
+    const list = document.getElementById('project-modal-list');
+    const items = projects[projectManagerType] || [];
+    if (!items.length) {
+        list.innerHTML = '<p class="empty-msg">لا توجد مشاريع. أضف أول مشروع!</p>';
+        return;
+    }
+    list.innerHTML = items.map(p => `
+        <div class="project-manager-item">
+            <span class="project-manager-name">${p}</span>
+            <div class="project-manager-actions">
+                <button class="icon-btn" onclick="startEditProject('${p}')" title="تعديل">✏️</button>
+                <button class="icon-btn" onclick="confirmDeleteProject('${p}')" title="حذف">🗑️</button>
+            </div>
+            <div class="project-edit-form" id="edit-${p.replace(/\s/g,'_')}" style="display:none">
+                <input type="text" id="edit-input-${p.replace(/\s/g,'_')}" value="${p}" style="flex:1">
+                <button class="btn btn-sm btn-success" onclick="doEditProject('${p}')">حفظ</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function saveNewProject() {
+    const name = document.getElementById('project-name-input').value.trim();
+    if (!name) { showToast('❌ أدخل اسم المشروع', 'error'); return; }
+    const items = projects[projectManagerType] || [];
+    if (items.includes(name)) { showToast('❌ المشروع موجود بالفعل', 'error'); return; }
+    addProject(name, projectManagerType);
+    document.getElementById('project-name-input').value = '';
+    renderProjectList();
+}
+
+function startEditProject(name) {
+    document.getElementById('edit-' + name.replace(/\s/g,'_')).style.display = 'flex';
+}
+
+function doEditProject(oldName) {
+    const input = document.getElementById('edit-input-' + oldName.replace(/\s/g,'_'));
+    const newName = input.value.trim();
+    if (!newName) { showToast('❌ أدخل اسم صحيح', 'error'); return; }
+    const items = projects[projectManagerType] || [];
+    if (items.includes(newName) && newName !== oldName) { showToast('❌ الاسم موجود بالفعل', 'error'); return; }
+    editProject(oldName, newName, projectManagerType);
+    document.getElementById('edit-' + oldName.replace(/\s/g,'_')).style.display = 'none';
+    renderProjectList();
+}
+
+function confirmDeleteProject(name) {
+    showConfirm('حذف المشروع', 'سيتم حذف المشروع "' + name + '". المهام المرتبطة به لن تتأثر.', () => {
+        deleteProject(name, projectManagerType);
+        renderProjectList();
+    });
 }
 
 // ==================== التصفية والعرض ====================
@@ -521,11 +635,22 @@ function changeMonth(dir) {
 // ==================== المشاريع ====================
 function renderProjects() {
     ['work', 'personal'].forEach(type => {
-        (PROJECTS[type] || []).forEach(proj => {
+        (projects[type] || []).forEach(proj => {
             const count = tasks.filter(t => t.project === proj && !t.archived).length;
             const el = document.getElementById('pcount-' + proj);
             if (el) el.textContent = count + ' مهام';
         });
+    });
+    renderProjectTags();
+}
+
+function renderProjectTags() {
+    ['work', 'personal'].forEach(type => {
+        const el = document.getElementById('project-list-' + type);
+        if (!el) return;
+        const items = projects[type] || [];
+        el.innerHTML = items.map(p => `<span class="project-tag">${p}</span>`).join('');
+        if (!items.length) el.innerHTML = '<span style="font-size:12px;color:var(--text-muted)">لا توجد مشاريع</span>';
     });
 }
 
