@@ -551,8 +551,8 @@ const QUOTES = [
     { text: 'أفضل طريقة لإنهاء مشروع صعب هي أن تبدأ به.', author: 'مارك توين' },
     { text: 'الانتصار ليس في التخطيط للعمل، بل في العمل على التخطيط.', author: 'نابليون بونابرت' },
     { text: 'لا تدع الكمال يكون عدو الإنجاز. أنجز اليوم ما تستطيع.', author: 'voltaire' },
-    { text: 'ال┙يق يصنع الفرق بين من يحلم ومن ينجز.', author: 'جوردن بيتشر' },
-    { text: 'ما لا يُقاس لا يُدار. حدد هدفك今天 وتابع تقدمك.', author: 'بيتر دراكر' },
+    { text: 'الانضباط هو الفرق بين من يحلم ومن ينجز.', author: 'جوردن بيتشر' },
+    { text: 'ما لا يُقاس لا يُدار. حدد هدفك وتابع تقدمك.', author: 'بيتر دراكر' },
 ];
 
 function renderHome() {
@@ -565,11 +565,11 @@ function renderHome() {
 
     // ترحيب حسب الوقت
     const hour = now.getHours();
-    const firstName = (currentUser.displayName || '').split(' ')[0] || 'صديقي';
-    let greeting = 'مساء الخير ' + firstName + ' 🌙';
-    if (hour >= 5 && hour < 12) greeting = 'صباح النور ' + firstName + ' ☀️';
-    else if (hour >= 12 && hour < 17) greeting = 'مساء النور ' + firstName + ' 🌤️';
-    else if (hour >= 17 && hour < 21) greeting = 'مساء الخير ' + firstName + ' 🌅';
+    const firstName = currentUser.displayName ? currentUser.displayName.split(' ')[0] : 'وليد';
+    let greeting = 'مساء الخير يا ' + firstName + ' 🌙';
+    if (hour >= 5 && hour < 12) greeting = 'صباح النور يا ' + firstName + ' ☀️';
+    else if (hour >= 12 && hour < 17) greeting = 'مساء النور يا ' + firstName + ' 🌤️';
+    else if (hour >= 17 && hour < 21) greeting = 'مساء الخير يا ' + firstName + ' 🌅';
     document.getElementById('home-greeting').textContent = greeting;
 
     // اقتباس تحفيزي
