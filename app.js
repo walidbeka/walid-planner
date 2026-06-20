@@ -130,8 +130,27 @@ const DEFAULT_PROJECTS = {
 };
 let deletedDefaults = JSON.parse(localStorage.getItem('wp_deleted_projects') || '[]');
 
+function saveProjectsLocal() {
+    localStorage.setItem('wp_projects', JSON.stringify(projects));
+}
+function loadProjectsLocal() {
+    try {
+        const d = JSON.parse(localStorage.getItem('wp_projects'));
+        if (d && d.work && d.personal) return d;
+    } catch(e) {}
+    return null;
+}
+
 function loadProjects() {
     if (!currentUser) return;
+    // استرجاع من localStorage كنسخة احتياطية (عشان لو Firebase وقع)
+    const local = loadProjectsLocal();
+    if (local) {
+        projects.work = [...new Set([...DEFAULT_PROJECTS.work.filter(p => !deletedDefaults.includes(p)), ...(local.work || [])])];
+        projects.personal = [...new Set([...DEFAULT_PROJECTS.personal.filter(p => !deletedDefaults.includes(p)), ...(local.personal || [])])];
+        updateProjectsDropdown();
+        renderProjects();
+    }
     const ref = db.collection('users').doc(currentUser.uid).collection('projects');
     ref.onSnapshot(snapshot => {
         const work = []; const personal = [];
@@ -140,11 +159,11 @@ function loadProjects() {
             if (p.type === 'work') work.push(p.name);
             else personal.push(p.name);
         });
-        // دمج المشاريع الافتراضية (غير المحذوفة) مع مشاريع Firebase
         const wd = DEFAULT_PROJECTS.work.filter(p => !deletedDefaults.includes(p));
         const pd = DEFAULT_PROJECTS.personal.filter(p => !deletedDefaults.includes(p));
         projects.work = [...new Set([...wd, ...work])];
         projects.personal = [...new Set([...pd, ...personal])];
+        saveProjectsLocal();
         updateProjectsDropdown();
         renderProjects();
     });
@@ -660,6 +679,7 @@ function addProjectFromPage(type) {
     if (!projects[type]) projects[type] = [];
     projects[type].push(name);
     input.value = '';
+    saveProjectsLocal();
     renderProjects();
 }
 
@@ -679,6 +699,7 @@ function doEditProjectFromPage(oldName, type) {
     editProject(oldName, newName, type);
     projects[type] = projects[type].map(p => p === oldName ? newName : p);
     document.getElementById('edit-inline-' + oldName.replace(/\s/g,'_')).style.display = 'none';
+    saveProjectsLocal();
     renderProjects();
 }
 
@@ -691,6 +712,7 @@ function confirmDeleteProjectFromPage(name, type) {
             localStorage.setItem('wp_deleted_projects', JSON.stringify(deletedDefaults));
         }
         projects[type] = (projects[type] || []).filter(p => p !== name);
+        saveProjectsLocal();
         renderProjects();
     });
 }
