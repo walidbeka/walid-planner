@@ -139,6 +139,7 @@ function setProjectsLocal() {
 
 function loadProjects() {
     if (!currentUser) return;
+    // 1. localStorage فوراً (تجربة سريعة)
     const local = getProjectsLocal();
     if (local && local.work && local.personal) {
         projects.work = [...new Set([...DEFAULT_PROJECTS.work.filter(p => !deletedDefaults.includes(p)), ...local.work])];
@@ -150,23 +151,47 @@ function loadProjects() {
     }
     updateProjectsDropdown();
     renderProjects();
+
+    // 2. Firebase سينك (للسير عبر الأجهزة)
+    db.collection('users').doc(currentUser.uid).collection('projects').onSnapshot(snapshot => {
+        const remote = { work: [], personal: [] };
+        snapshot.forEach(doc => {
+            const p = doc.data();
+            if (p.type === 'work') remote.work.push(p.name);
+            else remote.personal.push(p.name);
+        });
+        const localData = getProjectsLocal() || { work: [], personal: [] };
+        const wd = DEFAULT_PROJECTS.work.filter(p => !deletedDefaults.includes(p));
+        const pd = DEFAULT_PROJECTS.personal.filter(p => !deletedDefaults.includes(p));
+        projects.work = [...new Set([...wd, ...localData.work, ...remote.work])];
+        projects.personal = [...new Set([...pd, ...localData.personal, ...remote.personal])];
+        setProjectsLocal();
+        updateProjectsDropdown();
+        renderProjects();
+    }, err => console.warn('Projects sync error:', err));
 }
 
 function addProject(name, type) {
     if (!name.trim()) return;
     const n = name.trim();
-    if (!projects[type].includes(n)) {
-        projects[type].push(n);
-        setProjectsLocal();
-        updateProjectsDropdown();
-        renderProjects();
-    }
+    if (projects[type].includes(n)) { showToast('⚠️ المشروع موجود', 'error'); return; }
+    // 1. محلياً فوراً
+    projects[type].push(n);
+    setProjectsLocal();
+    updateProjectsDropdown();
+    renderProjects();
     showToast('✅ تم إضافة المشروع', 'success');
+    // 2. Firebase (سينك مع الأجهزة التانية)
+    if (currentUser) {
+        db.collection('users').doc(currentUser.uid).collection('projects').add({ name: n, type, createdAt: firebase.firestore.FieldValue.serverTimestamp() })
+            .catch(err => console.warn('Firebase add project error:', err));
+    }
 }
 
 function editProject(oldName, newName, type) {
     if (!newName.trim()) return;
     const nn = newName.trim();
+    // 1. محلياً فوراً
     const idx = projects[type].indexOf(oldName);
     if (idx !== -1) {
         projects[type][idx] = nn;
@@ -174,18 +199,32 @@ function editProject(oldName, newName, type) {
         updateProjectsDropdown();
         renderProjects();
     }
-    // تحديث اسم المشروع في المهام المحلية
     tasks.forEach(t => { if (t.project === oldName) t.project = nn; });
     localStorage.setItem('wp_tasks', JSON.stringify(tasks));
     showToast('✅ تم تعديل اسم المشروع', 'success');
+    // 2. Firebase
+    if (currentUser) {
+        const ref = db.collection('users').doc(currentUser.uid).collection('projects');
+        ref.where('name', '==', oldName).where('type', '==', type).get()
+            .then(snap => snap.forEach(doc => doc.ref.update({ name: nn })))
+            .catch(err => console.warn('Firebase edit project error:', err));
+    }
 }
 
 function deleteProject(name, type) {
+    // 1. محلياً فوراً
     projects[type] = projects[type].filter(p => p !== name);
     setProjectsLocal();
     updateProjectsDropdown();
     renderProjects();
     showToast('🗑️ تم حذف المشروع', 'success');
+    // 2. Firebase
+    if (currentUser) {
+        const ref = db.collection('users').doc(currentUser.uid).collection('projects');
+        ref.where('name', '==', name).where('type', '==', type).get()
+            .then(snap => snap.forEach(doc => doc.ref.delete()))
+            .catch(err => console.warn('Firebase delete project error:', err));
+    }
 }
 
 // ==================== المهام — إضافة / حفظ ====================
