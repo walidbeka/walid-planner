@@ -565,7 +565,7 @@ function renderHome() {
 
     // ترحيب حسب الوقت
     const hour = now.getHours();
-    const firstName = currentUser.displayName ? currentUser.displayName.split(' ')[0] : 'وليد';
+    const firstName = 'ولي';
     let greeting = 'مساء الخير يا ' + firstName + ' 🌙';
     if (hour >= 5 && hour < 12) greeting = 'صباح النور يا ' + firstName + ' ☀️';
     else if (hour >= 12 && hour < 17) greeting = 'مساء النور يا ' + firstName + ' 🌤️';
