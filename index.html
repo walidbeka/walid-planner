@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#1a1a2e" media="(prefers-color-scheme: dark)">
+    <meta name="theme-color" content="#f8f9fa" media="(prefers-color-scheme: light)">
+    <title>Walid Planner - مدير المهام</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📋</text></svg>">
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js">
+    </script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js">
+    </script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js">
+    </script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-functions-compat.js">
+    </script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- ==================== شاشة تسجيل الدخول ==================== -->
+    <div id="login-screen" class="screen login-screen">
+        <div class="login-card">
+            <div class="login-logo">
+                <div class="login-logo-icon">📋</div>
+                <h1>Walid Planner</h1>
+                <p>مدير المهام الشخصي</p>
+            </div>
+            <div class="login-btns">
+                <button class="btn btn-google" onclick="signInWithGoogle()">
+                    <svg viewBox="0 0 48 48" width="20" height="20"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.54 28.59A14.5 14.5 0 0 1 9.5 24c0-1.59.28-3.14.76-4.59l-7.98-6.19A23.99 23.99 0 0 0 0 24c0 3.77.87 7.35 2.56 10.56l7.98-5.97z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 5.97C6.51 42.62 14.62 48 24 48z"/></svg>
+                    تسجيل الدخول بحساب Google
+                </button>
+                <p id="login-error" class="login-error"></p>
+            </div>
+            <div class="login-footer">
+                <p>باستخدام حساب واحد فقط: <strong id="login-email-display">بريدك الإلكتروني</strong></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== التطبيق الرئيسي ==================== -->
+    <div id="app" class="app" style="display:none">
+        <!-- الشريط العلوي -->
+        <header class="top-bar" id="top-bar">
+            <button class="icon-btn" onclick="toggleSidebar()" id="menu-toggle" aria-label="القائمة">☰</button>
+            <div class="top-bar-title">
+                <span class="top-bar-icon">📋</span>
+                <span>Walid Planner</span>
+            </div>
+            <div class="top-bar-actions">
+                <button class="icon-btn" onclick="toggleTheme()" id="theme-toggle" aria-label="الوضع الليلي">🌙</button>
+                <button class="icon-btn" id="notification-bell" onclick="showNotificationPanel()" aria-label="الإشعارات">
+                    🔔
+                    <span id="notif-badge" class="badge" style="display:none">0</span>
+                </button>
+                <button class="icon-btn" onclick="signOut()" aria-label="تسجيل الخروج">🚪</button>
+            </div>
+        </header>
+
+        <!-- القائمة الجانبية -->
+        <nav class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-user">
+                    <div class="sidebar-avatar" id="user-avatar">👤</div>
+                    <div>
+                        <div class="sidebar-name" id="user-name">المستخدم</div>
+                        <div class="sidebar-email" id="user-email">user@gmail.com</div>
+                    </div>
+                </div>
+            </div>
+            <div class="sidebar-menu">
+                <button class="nav-btn active" data-page="home" onclick="navigate('home')">
+                    <span class="nav-icon">🏠</span>
+                    <span>الرئيسية</span>
+                </button>
+                <button class="nav-btn" data-page="tasks" onclick="navigate('tasks')">
+                    <span class="nav-icon">📋</span>
+                    <span>جميع المهام</span>
+                </button>
+                <button class="nav-btn" data-page="calendar" onclick="navigate('calendar')">
+                    <span class="nav-icon">📅</span>
+                    <span>التقويم</span>
+                </button>
+                <button class="nav-btn" data-page="projects" onclick="navigate('projects')">
+                    <span class="nav-icon">📁</span>
+                    <span>المشاريع</span>
+                </button>
+                <button class="nav-btn" data-page="search" onclick="navigate('search')">
+                    <span class="nav-icon">🔍</span>
+                    <span>بحث</span>
+                </button>
+                <button class="nav-btn" data-page="archive" onclick="navigate('archive')">
+                    <span class="nav-icon">🗄️</span>
+                    <span>الأرشيف</span>
+                </button>
+                <button class="nav-btn" data-page="settings" onclick="navigate('settings')">
+                    <span class="nav-icon">⚙️</span>
+                    <span>الإعدادات</span>
+                </button>
+            </div>
+            <div class="sidebar-footer">
+                <div class="sidebar-progress">
+                    <div class="sidebar-progress-label">نسبة الإنجاز</div>
+                    <div class="progress-bar-sm">
+                        <div class="progress-bar-sm-fill" id="sidebar-progress-fill" style="width:0%"></div>
+                    </div>
+                    <div class="sidebar-progress-text" id="sidebar-progress-text">0%</div>
+                </div>
+            </div>
+        </nav>
+        <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+        <!-- ==================== الصفحات ==================== -->
+        <main class="main-content" id="main-content">
+
+            <!-- ======== الصفحة الرئيسية ======== -->
+            <section id="page-home" class="page active">
+                <div class="page-header">
+                    <h1>مرحباً بك 👋</h1>
+                    <p id="home-date">اليوم</p>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-card stat-today" onclick="navigate('tasks', {filter:'today'})">
+                        <div class="stat-icon">📅</div>
+                        <div class="stat-info">
+                            <span class="stat-num" id="stat-today">0</span>
+                            <span class="stat-label">مهام اليوم</span>
+                        </div>
+                    </div>
+                    <div class="stat-card stat-overdue" onclick="navigate('tasks', {filter:'overdue'})">
+                        <div class="stat-icon">🔴</div>
+                        <div class="stat-info">
+                            <span class="stat-num" id="stat-overdue">0</span>
+                            <span class="stat-label">متأخرة</span>
+                        </div>
+                    </div>
+                    <div class="stat-card stat-upcoming" onclick="navigate('tasks', {filter:'upcoming'})">
+                        <div class="stat-icon">📆</div>
+                        <div class="stat-info">
+                            <span class="stat-num" id="stat-upcoming">0</span>
+                            <span class="stat-label">قادمة</span>
+                        </div>
+                    </div>
+                    <div class="stat-card stat-done" onclick="navigate('tasks', {filter:'completed'})">
+                        <div class="stat-icon">✅</div>
+                        <div class="stat-info">
+                            <span class="stat-num" id="stat-completed">0</span>
+                            <span class="stat-label">مكتملة</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="progress-card card">
+                    <div class="progress-header">
+                        <span>نسبة الإنجاز</span>
+                        <span id="progress-percent">0%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-bar-fill" id="progress-fill" style="width:0%"></div>
+                    </div>
+                </div>
+                <div class="home-sections">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>📅 مهام اليوم</h3>
+                            <button class="btn btn-sm btn-primary" onclick="navigate('tasks', {filter:'today'})">عرض الكل</button>
+                        </div>
+                        <div id="home-today-list" class="task-mini-list"></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>🔴 مهام متأخرة</h3>
+                            <button class="btn btn-sm btn-danger" onclick="navigate('tasks', {filter:'overdue'})">عرض الكل</button>
+                        </div>
+                        <div id="home-overdue-list" class="task-mini-list"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ======== صفحة جميع المهام ======== -->
+            <section id="page-tasks" class="page">
+                <div class="page-header tasks-header">
+                    <h1>📋 جميع المهام</h1>
+                    <div class="tasks-actions-top">
+                        <button class="btn btn-primary" onclick="openAddTaskModal()">+ إضافة مهمة</button>
+                    </div>
+                </div>
+                <div class="tasks-filter-bar">
+                    <div class="filter-chips" id="task-filters">
+                        <button class="chip active" data-filter="all" onclick="filterTasks('all')">الكل</button>
+                        <button class="chip" data-filter="today" onclick="filterTasks('today')">اليوم</button>
+                        <button class="chip" data-filter="overdue" onclick="filterTasks('overdue')">متأخرة</button>
+                        <button class="chip" data-filter="upcoming" onclick="filterTasks('upcoming')">قادمة</button>
+                        <button class="chip" data-filter="completed" onclick="filterTasks('completed')">مكتملة</button>
+                    </div>
+                    <div class="tasks-view-toggle">
+                        <button class="icon-btn active" onclick="setTaskView('list')" id="view-list" title="عرض قائمة">📋</button>
+                        <button class="icon-btn" onclick="setTaskView('kanban')" id="view-kanban" title="عرض كانبان">📊</button>
+                    </div>
+                </div>
+                <div class="task-search-bar">
+                    <input type="text" id="task-search-input" placeholder="ابحث عن مهمة..." oninput="searchInTasks(this.value)">
+                </div>
+                <div id="tasks-list-view" class="tasks-list"></div>
+                <div id="tasks-kanban-view" class="kanban-board" style="display:none"></div>
+            </section>
+
+            <!-- ======== صفحة التقويم ======== -->
+            <section id="page-calendar" class="page">
+                <div class="page-header">
+                    <h1>📅 التقويم</h1>
+                </div>
+                <div class="calendar-container">
+                    <div class="calendar-nav">
+                        <button class="icon-btn" onclick="changeMonth(-1)">◀</button>
+                        <h2 id="calendar-month-year">يناير 2025</h2>
+                        <button class="icon-btn" onclick="changeMonth(1)">▶</button>
+                    </div>
+                    <div class="calendar-weekdays">
+                        <span>ح</span><span>ن</span><span>ث</span><span>ر</span><span>خ</span><span>ج</span><span>س</span>
+                    </div>
+                    <div class="calendar-grid" id="calendar-grid"></div>
+                </div>
+                <div class="card" id="calendar-tasks-card" style="display:none">
+                    <div class="card-header">
+                        <h3 id="calendar-selected-date">مهام اليوم</h3>
+                    </div>
+                    <div id="calendar-day-tasks" class="task-mini-list"></div>
+                </div>
+            </section>
+
+            <!-- ======== صفحة المشاريع ======== -->
+            <section id="page-projects" class="page">
+                <div class="page-header">
+                    <h1>📁 المشاريع</h1>
+                </div>
+                <div class="projects-tabs">
+                    <button class="project-tab active" onclick="switchProjectTab('work')" id="ptab-work">💼 العمل</button>
+                    <button class="project-tab" onclick="switchProjectTab('personal')" id="ptab-personal">🏠 شخصي</button>
+                </div>
+                <div id="projects-work" class="project-section active">
+                    <div class="project-card" onclick="filterByProject('Bruce Group')">
+                        <div class="project-icon" style="background:#6c5ce7">B</div>
+                        <div class="project-info">
+                            <div class="project-name">Bruce Group</div>
+                            <div class="project-count" id="pcount-Bruce Group">0 مهام</div>
+                        </div>
+                    </div>
+                    <div class="project-card" onclick="filterByProject('WDY Media')">
+                        <div class="project-icon" style="background:#00cec9">W</div>
+                        <div class="project-info">
+                            <div class="project-name">WDY Media</div>
+                            <div class="project-count" id="pcount-WDY Media">0 مهام</div>
+                        </div>
+                    </div>
+                    <div class="project-card" onclick="filterByProject('DOYA')">
+                        <div class="project-icon" style="background:#fd79a8">D</div>
+                        <div class="project-info">
+                            <div class="project-name">DOYA</div>
+                            <div class="project-count" id="pcount-DOYA">0 مهام</div>
+                        </div>
+                    </div>
+                </div>
+                <div id="projects-personal" class="project-section">
+                    <div class="project-card" onclick="filterByProject('المنزل')">
+                        <div class="project-icon" style="background:#00b894">🏠</div>
+                        <div class="project-info">
+                            <div class="project-name">المنزل</div>
+                            <div class="project-count" id="pcount-المنزل">0 مهام</div>
+                        </div>
+                    </div>
+                    <div class="project-card" onclick="filterByProject('السيارة')">
+                        <div class="project-icon" style="background:#fdcb6e">🚗</div>
+                        <div class="project-info">
+                            <div class="project-name">السيارة</div>
+                            <div class="project-count" id="pcount-السيارة">0 مهام</div>
+                        </div>
+                    </div>
+                    <div class="project-card" onclick="filterByProject('العائلة')">
+                        <div class="project-icon" style="background:#e17055">👨‍👩‍👧‍👦</div>
+                        <div class="project-info">
+                            <div class="project-name">العائلة</div>
+                            <div class="project-count" id="pcount-العائلة">0 مهام</div>
+                        </div>
+                    </div>
+                    <div class="project-card" onclick="filterByProject('الأمور المالية')">
+                        <div class="project-icon" style="background:#0984e3">💰</div>
+                        <div class="project-info">
+                            <div class="project-name">الأمور المالية</div>
+                            <div class="project-count" id="pcount-الأمور المالية">0 مهام</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ======== صفحة البحث ======== -->
+            <section id="page-search" class="page">
+                <div class="page-header">
+                    <h1>🔍 بحث</h1>
+                </div>
+                <div class="search-box">
+                    <input type="text" id="global-search-input" placeholder="ابحث عن مهمة، مشروع، أو وصف..." oninput="globalSearch(this.value)" autofocus>
+                </div>
+                <div id="search-results" class="tasks-list"></div>
+            </section>
+
+            <!-- ======== صفحة الأرشيف ======== -->
+            <section id="page-archive" class="page">
+                <div class="page-header">
+                    <h1>🗄️ الأرشيف</h1>
+                    <p>المهام المؤرشفة</p>
+                </div>
+                <div id="archive-list" class="tasks-list"></div>
+            </section>
+
+            <!-- ======== صفحة الإعدادات ======== -->
+            <section id="page-settings" class="page">
+                <div class="page-header">
+                    <h1>⚙️ الإعدادات</h1>
+                </div>
+                <div class="settings-section">
+                    <div class="card">
+                        <h3>👤 الحساب</h3>
+                        <div class="setting-item">
+                            <span>البريد الإلكتروني المسموح به</span>
+                            <input type="email" id="settings-email" value="" placeholder="your.email@gmail.com">
+                        </div>
+                        <button class="btn btn-primary" onclick="saveAllowedEmail()">حفظ الإعدادات</button>
+                    </div>
+                    <div class="card">
+                        <h3>🎨 المظهر</h3>
+                        <div class="setting-item">
+                            <span>الوضع الليلي</span>
+                            <label class="toggle">
+                                <input type="checkbox" id="theme-toggle-setting" onchange="toggleThemeFromSettings()">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3>📊 النسخ الاحتياطي</h3>
+                        <div class="setting-item">
+                            <span>تصدير إلى Excel</span>
+                            <button class="btn btn-sm btn-primary" onclick="exportToExcel()">📥 تصدير</button>
+                        </div>
+                        <div class="setting-item">
+                            <span>تصدير إلى CSV</span>
+                            <button class="btn btn-sm btn-primary" onclick="exportToCSV()">📥 تصدير</button>
+                        </div>
+                        <div class="setting-item">
+                            <span>مسح جميع البيانات</span>
+                            <button class="btn btn-sm btn-danger" onclick="clearAllData()">🗑️ مسح</button>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3>📧 التذكير اليومي</h3>
+                        <p style="font-size:13px;color:var(--text-light);margin-bottom:12px">
+                            سيتم إرسال تذكير يومي الساعة 9:00 صباحاً لمهام اليوم والمتأخرة والعالية الأولوية.
+                        </p>
+                        <div class="setting-item">
+                            <span>تفعيل التذكير</span>
+                            <label class="toggle">
+                                <input type="checkbox" id="reminder-toggle" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- ==================== زر الإضافة السريع ==================== -->
+        <button class="fab" onclick="openAddTaskModal()" id="fab" aria-label="إضافة مهمة">+</button>
+
+        <!-- ==================== لوحة الإشعارات ==================== -->
+        <div class="notif-panel" id="notif-panel">
+            <div class="notif-header">
+                <h4>الإشعارات</h4>
+                <button class="icon-btn" onclick="closeNotificationPanel()">✕</button>
+            </div>
+            <div class="notif-list" id="notif-list">
+                <p class="empty-msg">لا توجد إشعارات</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== مودال إضافة/تعديل مهمة ==================== -->
+    <div class="modal-overlay" id="task-modal" style="display:none" onclick="closeModalOnOverlay(event)">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="modal-title">إضافة مهمة جديدة</h2>
+                <button class="icon-btn" onclick="closeTaskModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>اسم المهمة *</label>
+                    <input type="text" id="task-name" placeholder="أدخل اسم المهمة" maxlength="200">
+                </div>
+                <div class="form-group">
+                    <label>الوصف</label>
+                    <textarea id="task-desc" placeholder="وصف المهمة" rows="3"></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>النوع</label>
+                        <select id="task-type" onchange="updateProjectsDropdown()">
+                            <option value="work">💼 عمل</option>
+                            <option value="personal">🏠 شخصي</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>المشروع</label>
+                        <select id="task-project"></select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>الأولوية</label>
+                        <select id="task-priority">
+                            <option value="high">🔴 عالية</option>
+                            <option value="medium" selected>🟡 متوسطة</option>
+                            <option value="low">🟢 منخفضة</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>الحالة</label>
+                        <select id="task-status">
+                            <option value="new">جديدة</option>
+                            <option value="in_progress">جاري التنفيذ</option>
+                            <option value="completed">مكتملة</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>تاريخ التنفيذ *</label>
+                        <input type="date" id="task-date">
+                    </div>
+                    <div class="form-group">
+                        <label>وقت التنفيذ</label>
+                        <input type="time" id="task-time">
+                    </div>
+                </div>
+                <div class="modal-error" id="modal-error"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeTaskModal()">إلغاء</button>
+                <button class="btn btn-primary" id="modal-save-btn" onclick="saveTask()">💾 حفظ المهمة</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== مودال التأكيد ==================== -->
+    <div class="modal-overlay" id="confirm-modal" style="display:none" onclick="closeModalOnOverlay(event)">
+        <div class="modal modal-sm">
+            <div class="modal-header">
+                <h2 id="confirm-title">تأكيد</h2>
+                <button class="icon-btn" onclick="closeConfirmModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <p id="confirm-message">هل أنت متأكد؟</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeConfirmModal()">إلغاء</button>
+                <button class="btn btn-danger" id="confirm-btn" onclick="confirmAction()">تأكيد</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== Toast Container ==================== -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <script src="firebase-config.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
