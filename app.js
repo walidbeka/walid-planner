@@ -35,6 +35,7 @@ function signInWithGoogle() {
                 localStorage.setItem('wp_allowed_email', email);
             }
             currentUser = result.user;
+            db.collection('users').doc(result.user.uid).set({ email: result.user.email, name: result.user.displayName || '' }, { merge: true }).catch(() => {});
             errorEl.textContent = '';
             initApp();
         })
@@ -1124,6 +1125,8 @@ firebase.auth().onAuthStateChanged(user => {
             localStorage.setItem('wp_allowed_email', user.email);
         }
         currentUser = user;
+        // حفظ UID المستخدم في Firebase عشان الـ Action يعرف يقرا المهام
+        db.collection('users').doc(user.uid).set({ email: user.email, name: user.displayName || '' }, { merge: true }).catch(() => {});
         document.getElementById('login-screen').style.display = 'none';
         document.getElementById('app').style.display = 'flex';
         document.getElementById('user-name').textContent = user.displayName || 'المستخدم';

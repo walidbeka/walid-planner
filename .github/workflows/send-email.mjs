@@ -4,7 +4,7 @@ import crypto from 'crypto';
 const sa = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
 const projectId = sa.project_id;
 const toEmail = 'wmr77077@gmail.com';
-const firestore = 'https://firestore.googleapis.com/v1/projects/' + projectId + '/databases/(default)';
+const fb = 'https://firestore.googleapis.com/v1/projects/' + projectId + '/databases/(default)';
 
 function api(method, url, token, body, ct) {
   return new Promise((resolve, reject) => {
@@ -16,7 +16,7 @@ function api(method, url, token, body, ct) {
       let data = '';
       res.on('data', c => data += c);
       res.on('end', () => {
-        try { const j = JSON.parse(data); if (res.statusCode >= 400) reject({ status: res.statusCode, error: j.error || j }); else resolve(j); }
+        try { const j = JSON.parse(data); if (res.statusCode >= 400) reject({ status: res.statusCode, msg: j.error?.message || JSON.stringify(j) }); else resolve(j); }
         catch(e) { reject({ status: res.statusCode, text: data }); }
       });
     });
@@ -31,7 +31,7 @@ function getToken() {
   const h = Buffer.from(JSON.stringify({ alg: 'RS256', typ: 'JWT' })).toString('base64url');
   const p = Buffer.from(JSON.stringify({
     iss: sa.client_email,
-    scope: 'https://www.googleapis.com/auth/datastore https://www.googleapis.com/auth/cloud-platform https://www.googleapis.com/auth/firebase.auth',
+    scope: 'https://www.googleapis.com/auth/datastore https://www.googleapis.com/auth/cloud-platform',
     aud: 'https://oauth2.googleapis.com/token',
     exp: now + 3600, iat: now
   })).toString('base64url');
@@ -49,24 +49,23 @@ async function main() {
     const todayStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
     console.log('Date:', todayStr);
 
-    // 1. نجيب UID المستخدم من Firebase Auth
-    const authRes = await api('POST', 'https://identitytoolkit.googleapis.com/v1/projects/' + projectId + '/accounts:query', token,
-      JSON.stringify({ returnUserInfo: true, maxResults: 100 }));
-    const uids = (authRes.userInfo || []).filter(u => u.email === toEmail).map(u => u.localId);
-    console.log('Found UIDs:', uids);
+    // 1. نجيب المستخدمين من Firestore (الموقع بيحفظ user doc بعد تسجيل الدخول)
+    const usersRes = await api('GET', fb + '/documents/users', token);
+    const uids = (usersRes.documents || []).map(d => d.name.split('/').pop());
+    console.log('Users from Firestore:', uids);
 
     if (uids.length === 0) {
-      console.log('No user found for ' + toEmail);
+      console.log('No users found. افتح الموقع مرة على الأقل عشان يحفظ اليوزر.');
       return;
     }
 
-    // 2. نجيب المهام من كل المستخدمين
+    // 2. نجيب المهام لكل مستخدم
     const allTasks = [];
     for (const uid of uids) {
-      let pageToken = '';
+      let page = '';
       while (true) {
-        let url = firestore + '/documents/users/' + uid + '/tasks?pageSize=500';
-        if (pageToken) url += '&pageToken=' + encodeURIComponent(pageToken);
+        let url = fb + '/documents/users/' + uid + '/tasks?pageSize=500';
+        if (page) url += '&pageToken=' + encodeURIComponent(page);
         const resp = await api('GET', url, token);
         for (const doc of (resp.documents || [])) {
           const f = doc.fields || {};
@@ -77,21 +76,16 @@ async function main() {
             archived: f.archived?.booleanValue || false
           });
         }
-        pageToken = resp.nextPageToken || '';
-        if (!pageToken) break;
+        page = resp.nextPageToken || '';
+        if (!page) break;
       }
-      console.log('User ' + uid + ': ' + allTasks.length + ' tasks');
     }
-
-    if (allTasks.length === 0) { console.log('No tasks found'); return; }
+    console.log('Total tasks:', allTasks.length);
+    if (allTasks.length === 0) { console.log('No tasks'); return; }
 
     const todayTasks = allTasks.filter(t => t.date === todayStr && t.status !== 'completed' && !t.archived);
     const overdueTasks = allTasks.filter(t => t.date < todayStr && t.status !== 'completed' && !t.archived);
-
-    if (todayTasks.length === 0 && overdueTasks.length === 0) {
-      console.log('No pending tasks today');
-      return;
-    }
+    if (todayTasks.length === 0 && overdueTasks.length === 0) { console.log('No pending tasks'); return; }
 
     let body = '';
     if (todayTasks.length) { body += '📅 مهام اليوم (' + todayTasks.length + '):\n'; todayTasks.forEach(t => { body += '- ' + t.name + '\n'; }); }
@@ -100,9 +94,9 @@ async function main() {
     // 3. إرسال الإيميل
     await api('POST', 'https://formsubmit.co/ajax/' + encodeURIComponent(toEmail), null,
       JSON.stringify({ subject: 'Walid Planner - تذكير يومي', message: body }));
-    console.log('✅ Email sent successfully!');
+    console.log('✅ Email sent!');
   } catch(e) {
-    console.error('Error:', e.error?.message || e.error?.error?.message || JSON.stringify(e).slice(0, 500));
+    console.error('Error:', e.msg || e.text || JSON.stringify(e).slice(0, 300));
     process.exit(1);
   }
 }
