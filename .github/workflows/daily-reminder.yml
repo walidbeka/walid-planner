@@ -1,0 +1,21 @@
+name: Daily Reminder Email
+
+on:
+  schedule:
+    - cron: '0 6 * * *'   # 9 AM Cairo (UTC+2) = 7 UTC
+  workflow_dispatch:
+
+jobs:
+  send-reminder:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Send daily reminder email
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: node .github/workflows/send-email.mjs
