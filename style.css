@@ -598,6 +598,12 @@ body {
 [data-theme="dark"] .home-clock-box .clock-time { color: #a29bfe; }
 [data-theme="dark"] .home-quote { box-shadow: 0 4px 20px rgba(108,92,231,0.1); }
 
+/* === موبايل: الإشعارات منبثقة كاملة === */
+@media (max-width: 767px) {
+    .notif-panel { position: fixed; top: calc(var(--top-bar-height) + 4px); left: 8px; right: 8px; width: auto; max-width: none; }
+    .notif-panel::before { left: auto; right: 60px; }
+}
+
 /* === شاشات كبيرة === */
 @media (min-width: 768px) {
     .sidebar { right: 0 !important; position: fixed; }

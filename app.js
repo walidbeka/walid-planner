@@ -124,10 +124,15 @@ function getTaskDocRef(taskId) {
 }
 
 // ==================== المشاريع — تحميل وإدارة ====================
+const DEFAULT_PROJECTS = {
+    work: ['Bruce Group', 'WDY Media', 'DOYA'],
+    personal: ['المنزل', 'السيارة', 'العائلة', 'الأمور المالية']
+};
+let deletedDefaults = JSON.parse(localStorage.getItem('wp_deleted_projects') || '[]');
+
 function loadProjects() {
     if (!currentUser) return;
     const ref = db.collection('users').doc(currentUser.uid).collection('projects');
-    let ready = false;
     ref.onSnapshot(snapshot => {
         const work = []; const personal = [];
         snapshot.forEach(doc => {
@@ -135,26 +140,13 @@ function loadProjects() {
             if (p.type === 'work') work.push(p.name);
             else personal.push(p.name);
         });
-        projects.work = work;
-        projects.personal = personal;
+        // دمج المشاريع الافتراضية (غير المحذوفة) مع مشاريع Firebase
+        const wd = DEFAULT_PROJECTS.work.filter(p => !deletedDefaults.includes(p));
+        const pd = DEFAULT_PROJECTS.personal.filter(p => !deletedDefaults.includes(p));
+        projects.work = [...new Set([...wd, ...work])];
+        projects.personal = [...new Set([...pd, ...personal])];
         updateProjectsDropdown();
         renderProjects();
-        // أول مرة: زرع المشاريع الافتراضية لو فاضية
-        if (!ready && !work.length && !personal.length) seedDefaultProjects();
-        ready = true;
-    });
-}
-function seedDefaultProjects() {
-    const defaults = {
-        work: ['Bruce Group', 'WDY Media', 'DOYA'],
-        personal: ['المنزل', 'السيارة', 'العائلة', 'الأمور المالية']
-    };
-    Object.keys(defaults).forEach(type => {
-        defaults[type].forEach(name => {
-            db.collection('users').doc(currentUser.uid).collection('projects').add({
-                name, type, createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-        });
     });
 }
 
@@ -518,13 +510,12 @@ function updateClock() {
     if (!cairo || !riyadh) return;
     const now = new Date();
     function fmt(tz) {
-        const p = new Intl.DateTimeFormat('en', { timeZone: tz, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).formatToParts(now);
+        const p = new Intl.DateTimeFormat('en', { timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false }).formatToParts(now);
         const h = +p.find(x => x.type === 'hour').value;
         const m = p.find(x => x.type === 'minute').value;
-        const s = p.find(x => x.type === 'second').value;
         const ampm = h >= 12 ? 'مساءاً' : 'صباحاً';
         const h12 = h % 12 || 12;
-        return String(h12).padStart(2,'0') + ':' + m + ':' + s + ' ' + ampm;
+        return String(h12).padStart(2,'0') + ':' + m + ' ' + ampm;
     }
     cairo.textContent = fmt('Africa/Cairo');
     riyadh.textContent = fmt('Asia/Riyadh');
@@ -690,6 +681,11 @@ function doEditProjectFromPage(oldName, type) {
 function confirmDeleteProjectFromPage(name, type) {
     showConfirm('حذف المشروع', 'سيتم حذف المشروع "' + name + '".', () => {
         deleteProject(name, type);
+        // لو المشروع افتراضي، نخزنه في localStorage علا مايظهرش تاني
+        if (DEFAULT_PROJECTS[type].includes(name)) {
+            deletedDefaults.push(name);
+            localStorage.setItem('wp_deleted_projects', JSON.stringify(deletedDefaults));
+        }
         projects[type] = (projects[type] || []).filter(p => p !== name);
         renderProjects();
     });
