@@ -10,7 +10,7 @@ const firebaseConfig = {
 };
 
 // البريد الإلكتروني المسموح به فقط (حسابك الشخصي)
-const ALLOWED_EMAIL = "YOUR_EMAIL@gmail.com";
+const ALLOWED_EMAIL = "wmr77077@gmail.com";
 
 // تهيئة Firebase
 firebase.initializeApp(firebaseConfig);
