@@ -40,7 +40,18 @@ function getAccessToken() {
   signer.end();
   const assertion = header + '.' + payload + '.' + signer.sign(sa.private_key, 'base64url');
   const body = 'grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=' + encodeURIComponent(assertion);
-  return request('oauth2.googleapis.com', '/token', 'POST', null, body).then(r => r.access_token);
+  return new Promise((resolve, reject) => {
+    const req = https.request({ hostname: 'oauth2.googleapis.com', path: '/token', method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Content-Length': Buffer.byteLength(body) } }, res => {
+      let data = '';
+      res.on('data', c => data += c);
+      res.on('end', () => {
+        try { resolve(JSON.parse(data).access_token); } catch(e) { reject(new Error('Token error: ' + data)); }
+      });
+    });
+    req.on('error', reject);
+    req.write(body);
+    req.end();
+  });
 }
 
 async function main() {
