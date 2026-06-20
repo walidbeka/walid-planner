@@ -572,9 +572,23 @@ function renderHome() {
     else if (hour >= 17 && hour < 21) greeting = 'مساء الخير يا ' + firstName + ' 🌅';
     document.getElementById('home-greeting').textContent = greeting;
 
-    // اقتباس تحفيزي
-    const q = QUOTES[Math.floor(Math.random() * QUOTES.length)];
-    document.getElementById('home-quote').innerHTML = '<span class="quote-text">« ' + q.text + ' »</span><span class="quote-author">— ' + q.author + '</span>';
+    // اقتباس تحفيزي - واحد على كل الأجهزة
+    const quoteEl = document.getElementById('home-quote');
+    const todayKey = todayStr();
+    const quoteRef = db.collection('dailyQuotes').doc(todayKey);
+    quoteRef.get().then(doc => {
+        let q;
+        if (doc.exists && doc.data().text) {
+            q = QUOTES.find(x => x.text === doc.data().text) || QUOTES[Math.floor(Math.random() * QUOTES.length)];
+        } else {
+            q = QUOTES[Math.floor(Math.random() * QUOTES.length)];
+            quoteRef.set({ text: q.text, author: q.author, date: todayKey }).catch(() => {});
+        }
+        quoteEl.innerHTML = '<span class="quote-text">« ' + q.text + ' »</span><span class="quote-author">— ' + q.author + '</span>';
+    }).catch(() => {
+        const q = QUOTES[Math.floor(Math.random() * QUOTES.length)];
+        quoteEl.innerHTML = '<span class="quote-text">« ' + q.text + ' »</span><span class="quote-author">— ' + q.author + '</span>';
+    });
 
     const todayTasks = tasks.filter(t => t.date === today && !t.archived);
     const overdueTasks = tasks.filter(t => t.date < today && t.status !== 'completed' && !t.archived);
