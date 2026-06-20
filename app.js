@@ -926,10 +926,9 @@ function testReminderEmail() {
     }
     body += '\n━━━━━━━━━━━━━━━━━━━\nWalid Planner';
 
-    // فتح تطبيق البريد الافتراضي مع المحتوى
-    const subject = encodeURIComponent('📋 Walid Planner - ملخص المهام اليومية');
+    const subject = encodeURIComponent('Walid Planner - ملخص المهام اليومية');
     const mailBody = encodeURIComponent(body);
-    window.open('mailto:' + email + '?subject=' + subject + '&body=' + mailBody, '_blank');
+    window.location.href = 'mailto:' + email + '?subject=' + subject + '&body=' + mailBody;
     showToast('📨 تم فتح البريد لإرسال الاختبار', 'success');
 }
 
