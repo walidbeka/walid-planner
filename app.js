@@ -139,50 +139,22 @@ function setProjectsLocal() {
 
 function loadProjects() {
     if (!currentUser) return;
-    // 1. تحميل من localStorage فوراً (مضمون 100%)
     const local = getProjectsLocal();
     if (local && local.work && local.personal) {
         projects.work = [...new Set([...DEFAULT_PROJECTS.work.filter(p => !deletedDefaults.includes(p)), ...local.work])];
         projects.personal = [...new Set([...DEFAULT_PROJECTS.personal.filter(p => !deletedDefaults.includes(p)), ...local.personal])];
     } else {
-        // أول مرة: استخدم الافتراضية واحفظها في localStorage
         projects.work = [...DEFAULT_PROJECTS.work.filter(p => !deletedDefaults.includes(p))];
         projects.personal = [...DEFAULT_PROJECTS.personal.filter(p => !deletedDefaults.includes(p))];
         setProjectsLocal();
     }
     updateProjectsDropdown();
     renderProjects();
-
-    // 2. محاولة مزامنة Firebase (اختياري - لو اشتغل كويس، لو لأ localStorage موجود)
-    const ref = db.collection('users').doc(currentUser.uid).collection('projects');
-    ref.onSnapshot(snapshot => {
-        const work = []; const personal = [];
-        snapshot.forEach(doc => {
-            const p = doc.data();
-            if (p.type === 'work') work.push(p.name);
-            else personal.push(p.name);
-        });
-        // دمج Firebase مع الـ local (Firebase ياخد الأولوية)
-        const wd = DEFAULT_PROJECTS.work.filter(p => !deletedDefaults.includes(p));
-        const pd = DEFAULT_PROJECTS.personal.filter(p => !deletedDefaults.includes(p));
-        const merged = {
-            work: [...new Set([...wd, ...work])],
-            personal: [...new Set([...pd, ...personal])]
-        };
-        projects.work = merged.work;
-        projects.personal = merged.personal;
-        setProjectsLocal();
-        updateProjectsDropdown();
-        renderProjects();
-    }, err => {
-        console.warn('⚠️ Firebase projects sync failed, using localStorage:', err);
-    });
 }
 
 function addProject(name, type) {
-    if (!currentUser || !name.trim()) return;
+    if (!name.trim()) return;
     const n = name.trim();
-    // حفظ محلياً فوراً (يعمل حتى لو Firebase مش شغال)
     if (!projects[type].includes(n)) {
         projects[type].push(n);
         setProjectsLocal();
@@ -190,16 +162,11 @@ function addProject(name, type) {
         renderProjects();
     }
     showToast('✅ تم إضافة المشروع', 'success');
-    // محاولة Firebase (اختياري - لو نجح يستخدمه الشاشات التانية)
-    db.collection('users').doc(currentUser.uid).collection('projects').add({ name: n, type, createdAt: firebase.firestore.FieldValue.serverTimestamp() }).catch(err => {
-        console.warn('⚠️ Firebase add project failed (local saved):', err);
-    });
 }
 
 function editProject(oldName, newName, type) {
-    if (!currentUser || !newName.trim()) return;
+    if (!newName.trim()) return;
     const nn = newName.trim();
-    // تعديل محلياً فوراً
     const idx = projects[type].indexOf(oldName);
     if (idx !== -1) {
         projects[type][idx] = nn;
@@ -207,31 +174,18 @@ function editProject(oldName, newName, type) {
         updateProjectsDropdown();
         renderProjects();
     }
+    // تحديث اسم المشروع في المهام المحلية
+    tasks.forEach(t => { if (t.project === oldName) t.project = nn; });
+    localStorage.setItem('wp_tasks', JSON.stringify(tasks));
     showToast('✅ تم تعديل اسم المشروع', 'success');
-    // محاولة Firebase
-    const ref = db.collection('users').doc(currentUser.uid).collection('projects');
-    ref.where('name', '==', oldName).where('type', '==', type).get().then(snap => {
-        snap.forEach(doc => { doc.ref.update({ name: nn }); });
-    }).catch(err => console.warn('⚠️ Firebase edit project failed:', err));
-    const tasksRef = db.collection('users').doc(currentUser.uid).collection('tasks');
-    tasksRef.where('project', '==', oldName).get().then(snap => {
-        snap.forEach(doc => { doc.ref.update({ project: nn }); });
-    }).catch(err => console.warn('⚠️ Firebase edit tasks failed:', err));
 }
 
 function deleteProject(name, type) {
-    if (!currentUser) return;
-    // حذف محلياً فوراً
     projects[type] = projects[type].filter(p => p !== name);
     setProjectsLocal();
     updateProjectsDropdown();
     renderProjects();
     showToast('🗑️ تم حذف المشروع', 'success');
-    // محاولة Firebase
-    const ref = db.collection('users').doc(currentUser.uid).collection('projects');
-    ref.where('name', '==', name).where('type', '==', type).get().then(snap => {
-        snap.forEach(doc => { doc.ref.delete(); });
-    }).catch(err => console.warn('⚠️ Firebase delete project failed:', err));
 }
 
 // ==================== المهام — إضافة / حفظ ====================
