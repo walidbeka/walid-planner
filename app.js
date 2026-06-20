@@ -18,8 +18,11 @@ let confirmCallback = null;
 const MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
 
 // ==================== Firebase ====================
+let gmailAccessToken = null;
+
 function signInWithGoogle() {
     const provider = new firebase.auth.GoogleAuthProvider();
+    provider.addScope('https://www.googleapis.com/auth/gmail.send');
     provider.setCustomParameters({ prompt: 'select_account' });
     firebase.auth().signInWithPopup(provider)
         .then(result => {
@@ -35,6 +38,7 @@ function signInWithGoogle() {
                 localStorage.setItem('wp_allowed_email', email);
             }
             currentUser = result.user;
+            gmailAccessToken = result.credential.accessToken;
             errorEl.textContent = '';
             initApp();
         })
@@ -139,32 +143,60 @@ function setProjectsLocal() {
 
 function loadProjects() {
     if (!currentUser) return;
-    // 1. localStorage فوراً (تجربة سريعة)
+    // 1. localStorage كـ cache سريع
     const local = getProjectsLocal();
     if (local && local.work && local.personal) {
-        projects.work = [...new Set([...DEFAULT_PROJECTS.work.filter(p => !deletedDefaults.includes(p)), ...local.work])];
-        projects.personal = [...new Set([...DEFAULT_PROJECTS.personal.filter(p => !deletedDefaults.includes(p)), ...local.personal])];
-    } else {
-        projects.work = [...DEFAULT_PROJECTS.work.filter(p => !deletedDefaults.includes(p))];
-        projects.personal = [...DEFAULT_PROJECTS.personal.filter(p => !deletedDefaults.includes(p))];
-        setProjectsLocal();
-    }
-    updateProjectsDropdown();
-    renderProjects();
-
-    // 2. Firebase سينك (للسير عبر الأجهزة)
-    db.collection('users').doc(currentUser.uid).collection('projects').onSnapshot(snapshot => {
-        const remote = { work: [], personal: [] };
-        snapshot.forEach(doc => {
-            const p = doc.data();
-            if (p.type === 'work') remote.work.push(p.name);
-            else remote.personal.push(p.name);
-        });
-        const localData = getProjectsLocal() || { work: [], personal: [] };
         const wd = DEFAULT_PROJECTS.work.filter(p => !deletedDefaults.includes(p));
         const pd = DEFAULT_PROJECTS.personal.filter(p => !deletedDefaults.includes(p));
-        projects.work = [...new Set([...wd, ...localData.work, ...remote.work])];
-        projects.personal = [...new Set([...pd, ...localData.personal, ...remote.personal])];
+        projects.work = [...new Set([...wd, ...local.work])];
+        projects.personal = [...new Set([...pd, ...local.personal])];
+        updateProjectsDropdown();
+        renderProjects();
+    }
+
+    // 2. Firebase هو مصدر البيانات الأساسي
+    //    أي حاجة في localStorage مش موجودة في Firebase (من التحديث القديم)
+    //    بنرفعها لـ Firebase عشان تتبعت لكل الأجهزة
+    const localForMigration = getProjectsLocal();
+    const batch = db.batch();
+    let needsMigration = false;
+    const ref = db.collection('users').doc(currentUser.uid).collection('projects');
+    ref.onSnapshot(snapshot => {
+        const fbProjects = { work: [], personal: [] };
+        const fbNames = [];
+        snapshot.forEach(doc => {
+            const p = doc.data();
+            if (p.type === 'work') { fbProjects.work.push(p.name); fbNames.push(p.name); }
+            else { fbProjects.personal.push(p.name); fbNames.push(p.name); }
+        });
+        // ترحيل المشاريع القديمة من localStorage لـ Firebase
+        if (localForMigration && snapshot.docs.length === 0) {
+            const wd = DEFAULT_PROJECTS.work.filter(p => !deletedDefaults.includes(p));
+            const pd = DEFAULT_PROJECTS.personal.filter(p => !deletedDefaults.includes(p));
+            const allWork = [...new Set([...wd, ...localForMigration.work])];
+            const allPersonal = [...new Set([...pd, ...localForMigration.personal])];
+            allWork.forEach(n => {
+                if (!fbNames.includes(n)) {
+                    ref.add({ name: n, type: 'work', createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+                }
+            });
+            allPersonal.forEach(n => {
+                if (!fbNames.includes(n)) {
+                    ref.add({ name: n, type: 'personal', createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+                }
+            });
+        }
+        // Firebase هو الأساس — الـ defaults بتظهر بس لو مفيش بيانات في Firebase
+        const wd = DEFAULT_PROJECTS.work.filter(p => !deletedDefaults.includes(p));
+        const pd = DEFAULT_PROJECTS.personal.filter(p => !deletedDefaults.includes(p));
+        if (fbProjects.work.length === 0 && fbProjects.personal.length === 0) {
+            // أول مرة — استخدم الـ defaults
+            projects.work = wd;
+            projects.personal = pd;
+        } else {
+            projects.work = fbProjects.work;
+            projects.personal = fbProjects.personal;
+        }
         setProjectsLocal();
         updateProjectsDropdown();
         renderProjects();
@@ -175,13 +207,13 @@ function addProject(name, type) {
     if (!name.trim()) return;
     const n = name.trim();
     if (projects[type].includes(n)) { showToast('⚠️ المشروع موجود', 'error'); return; }
-    // 1. محلياً فوراً
+    // محلياً فوراً (عشان يظهر على طول)
     projects[type].push(n);
     setProjectsLocal();
     updateProjectsDropdown();
     renderProjects();
     showToast('✅ تم إضافة المشروع', 'success');
-    // 2. Firebase (سينك مع الأجهزة التانية)
+    // Firebase عشان السينك
     if (currentUser) {
         db.collection('users').doc(currentUser.uid).collection('projects').add({ name: n, type, createdAt: firebase.firestore.FieldValue.serverTimestamp() })
             .catch(err => console.warn('Firebase add project error:', err));
@@ -191,7 +223,7 @@ function addProject(name, type) {
 function editProject(oldName, newName, type) {
     if (!newName.trim()) return;
     const nn = newName.trim();
-    // 1. محلياً فوراً
+    // محلياً فوراً
     const idx = projects[type].indexOf(oldName);
     if (idx !== -1) {
         projects[type][idx] = nn;
@@ -202,7 +234,7 @@ function editProject(oldName, newName, type) {
     tasks.forEach(t => { if (t.project === oldName) t.project = nn; });
     localStorage.setItem('wp_tasks', JSON.stringify(tasks));
     showToast('✅ تم تعديل اسم المشروع', 'success');
-    // 2. Firebase
+    // Firebase
     if (currentUser) {
         const ref = db.collection('users').doc(currentUser.uid).collection('projects');
         ref.where('name', '==', oldName).where('type', '==', type).get()
@@ -212,13 +244,13 @@ function editProject(oldName, newName, type) {
 }
 
 function deleteProject(name, type) {
-    // 1. محلياً فوراً
+    // محلياً فوراً
     projects[type] = projects[type].filter(p => p !== name);
     setProjectsLocal();
     updateProjectsDropdown();
     renderProjects();
     showToast('🗑️ تم حذف المشروع', 'success');
-    // 2. Firebase
+    // Firebase
     if (currentUser) {
         const ref = db.collection('users').doc(currentUser.uid).collection('projects');
         ref.where('name', '==', name).where('type', '==', type).get()
@@ -941,36 +973,46 @@ function sendDailyReminder() {
     sendEmail('📋 Walid Planner - تذكير يومي', body, email);
 }
 
-// ==================== البريد الإلكتروني (EmailJS) ====================
-// خطوات تفعيل الإيميل التلقائي:
-// 1. افتح https://www.emailjs.com
-// 2. اعمل حساب مجاني
-// 3. اربط بريدك (Gmail)
-// 4. روح لـ Email Services -> Service ID
-// 5. روح لـ Email Templates -> Template ID
-// 6. روح لـ Account -> API Keys -> Public Key
-// 7. غير القيم تحت
-const EMAILJS_CONFIG = {
-    serviceID: 'service_xxxxxxx',  // حط Service ID من EmailJS
-    templateID: 'template_xxxxxx', // حط Template ID من EmailJS
-    publicKey: 'YOUR_PUBLIC_KEY'   // حط Public Key من EmailJS
-};
+// ==================== البريد الإلكتروني (Gmail API) ====================
+// خطوات التفعيل:
+// 1. افتح https://console.cloud.google.com/apis/library/gmail.googleapis.com
+// 2. اختر مشروع: Walid Planner (walid-planner)
+// 3. اضغط Enable
+// 4. بعدها الإيميل هينبعت تلقائي من Gmail بتاعك
 
 function sendEmail(subject, body, toEmail) {
-    if (EMAILJS_CONFIG.publicKey === 'YOUR_PUBLIC_KEY') {
-        showToast('❌ لازم تضبط EmailJS أولاً - راجع الإعدادات', 'error');
-        console.log('📧 Email would be sent:', { to: toEmail, subject, body });
+    if (!gmailAccessToken) {
+        showToast('❌ سجل خروج وادخل تاني عشان الإيميل يشتغل', 'error');
         return;
     }
-    emailjs.send(EMAILJS_CONFIG.serviceID, EMAILJS_CONFIG.templateID, {
-        to_email: toEmail,
-        subject: subject,
-        message: body
-    }).then(() => {
-        showToast('📨 تم إرسال البريد بنجاح', 'success');
+    const emailContent = [
+        'From: "Walid Planner" <' + toEmail + '>',
+        'To: ' + toEmail,
+        'Subject: =?UTF-8?B?' + btoa(unescape(encodeURIComponent(subject))) + '?=',
+        'Content-Type: text/plain; charset=UTF-8',
+        '',
+        body
+    ].join('\r\n');
+    const encoded = btoa(unescape(encodeURIComponent(emailContent)))
+        .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+    fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+        method: 'POST',
+        headers: {
+            'Authorization': 'Bearer ' + gmailAccessToken,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ raw: encoded })
+    }).then(r => {
+        if (r.ok) { showToast('📨 تم إرسال البريد بنجاح', 'success'); }
+        else { return r.json().then(e => { throw new Error(e.error.message); }); }
     }).catch(err => {
-        console.error('EmailJS error:', err);
-        showToast('❌ فشل الإرسال: ' + err.text, 'error');
+        console.error('Gmail API error:', err);
+        if (err.message.includes('access')) {
+            showToast('❌ سجل خروج وادخل تاني عشان الإيميل يشتغل', 'error');
+        } else {
+            showToast('❌ فشل الإرسال: ' + err.message, 'error');
+        }
     });
 }
 
