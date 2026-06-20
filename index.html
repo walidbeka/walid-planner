@@ -57,6 +57,16 @@
                     <span id="notif-badge" class="badge" style="display:none">0</span>
                 </button>
                 <button class="icon-btn" onclick="signOut()" aria-label="تسجيل الخروج">🚪</button>
+                <!-- لوحة الإشعارات المنسدلة -->
+                <div class="notif-panel" id="notif-panel">
+                    <div class="notif-header">
+                        <h4>الإشعارات</h4>
+                        <button class="icon-btn" onclick="closeNotificationPanel()">✕</button>
+                    </div>
+                    <div class="notif-list" id="notif-list">
+                        <p class="empty-msg">لا توجد إشعارات</p>
+                    </div>
+                </div>
             </div>
         </header>
 
@@ -387,16 +397,6 @@
         <!-- ==================== زر الإضافة السريع ==================== -->
         <button class="fab" onclick="openAddTaskModal()" id="fab" aria-label="إضافة مهمة">+</button>
 
-        <!-- ==================== لوحة الإشعارات ==================== -->
-        <div class="notif-panel" id="notif-panel">
-            <div class="notif-header">
-                <h4>الإشعارات</h4>
-                <button class="icon-btn" onclick="closeNotificationPanel()">✕</button>
-            </div>
-            <div class="notif-list" id="notif-list">
-                <p class="empty-msg">لا توجد إشعارات</p>
-            </div>
-        </div>
     </div>
 
     <!-- ==================== مودال إضافة/تعديل مهمة ==================== -->
@@ -425,7 +425,16 @@
                     </div>
                     <div class="form-group">
                         <label>المشروع</label>
-                        <select id="task-project"></select>
+                        <div class="project-select-wrap">
+                            <select id="task-project"></select>
+                            <button type="button" class="icon-btn icon-btn-sm" onclick="showQuickAddProject()" title="إضافة مشروع" id="btn-add-project">➕</button>
+                            <button type="button" class="icon-btn icon-btn-sm" onclick="confirmDeleteSelectedProject()" title="حذف المشروع المحدد" id="btn-delete-project">🗑️</button>
+                        </div>
+                        <div class="quick-add-project" id="quick-add-project" style="display:none">
+                            <input type="text" id="quick-project-name" placeholder="اسم المشروع الجديد">
+                            <button class="btn btn-sm btn-primary" onclick="confirmQuickAddProject()">إضافة</button>
+                            <button class="btn btn-sm btn-secondary" onclick="cancelQuickAddProject()">إلغاء</button>
+                        </div>
                     </div>
                 </div>
                 <div class="form-row">

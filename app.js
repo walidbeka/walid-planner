@@ -205,7 +205,7 @@ function closeTaskModal() {
     editingTaskId = null;
 }
 
-function updateProjectsDropdown() {
+function updateProjectsDropdown(selectNew) {
     const type = document.getElementById('task-type').value;
     const sel = document.getElementById('task-project');
     const currentVal = sel.value;
@@ -216,7 +216,11 @@ function updateProjectsDropdown() {
         opt.textContent = p;
         sel.appendChild(opt);
     });
-    if (currentVal && projects[type].includes(currentVal)) sel.value = currentVal;
+    if (selectNew && projects[type].includes(selectNew)) {
+        sel.value = selectNew;
+    } else if (currentVal && projects[type].includes(currentVal)) {
+        sel.value = currentVal;
+    }
 }
 
 function saveTask() {
@@ -374,6 +378,37 @@ function doEditProject(oldName) {
     editProject(oldName, newName, projectManagerType);
     document.getElementById('edit-' + oldName.replace(/\s/g,'_')).style.display = 'none';
     renderProjectList();
+}
+
+// ==================== إضافة/حذف مشروع من مودال المهمة ====================
+function showQuickAddProject() {
+    document.getElementById('quick-add-project').style.display = 'flex';
+    document.getElementById('quick-project-name').focus();
+}
+function cancelQuickAddProject() {
+    document.getElementById('quick-add-project').style.display = 'none';
+    document.getElementById('quick-project-name').value = '';
+}
+function confirmQuickAddProject() {
+    const name = document.getElementById('quick-project-name').value.trim();
+    const type = document.getElementById('task-type').value;
+    if (!name) return;
+    if ((projects[type] || []).includes(name)) {
+        showToast('⚠️ المشروع موجود مسبقاً', 'error');
+        return;
+    }
+    addProject(name, type);
+    cancelQuickAddProject();
+    updateProjectsDropdown(name);
+}
+function confirmDeleteSelectedProject() {
+    const sel = document.getElementById('task-project');
+    const name = sel.value;
+    if (!name) { showToast('⚠️ اختر مشروعاً أولاً', 'error'); return; }
+    const type = document.getElementById('task-type').value;
+    showConfirm('حذف المشروع', 'سيتم حذف المشروع "' + name + '".', () => {
+        deleteProject(name, type);
+    });
 }
 
 function confirmDeleteProject(name) {
@@ -767,19 +802,22 @@ function checkNotifications() {
 function showNotificationPanel() {
     const panel = document.getElementById('notif-panel');
     const list = document.getElementById('notif-list');
-    panel.classList.toggle('open');
-    if (panel.classList.contains('open')) {
-        if (!allNotifications.length) {
-            list.innerHTML = '<p class="empty-msg">لا توجد إشعارات</p>';
-        } else {
-            list.innerHTML = allNotifications.map(n =>
-                `<div class="notif-item ${n.type === 'overdue' ? 'notif-overdue' : 'notif-reminder'}">
-                    <div>${n.text}</div>
-                    <div class="notif-time">${n.time}</div>
-                </div>`
-            ).join('');
-        }
+    const isOpen = panel.classList.contains('open');
+    if (isOpen) {
+        panel.classList.remove('open');
+        return;
     }
+    if (!allNotifications.length) {
+        list.innerHTML = '<p class="empty-msg">لا توجد إشعارات</p>';
+    } else {
+        list.innerHTML = allNotifications.map(n =>
+            `<div class="notif-item ${n.type === 'overdue' ? 'notif-overdue' : 'notif-reminder'}">
+                <div>${n.text}</div>
+                <div class="notif-time">${n.time}</div>
+            </div>`
+        ).join('');
+    }
+    panel.classList.add('open');
 }
 
 function closeNotificationPanel() {
@@ -963,6 +1001,16 @@ firebase.auth().onAuthStateChanged(user => {
         loadTasks();
         setupDailyReminder();
         requestNotificationPermission();
+        // إغلاق القائمة المنسدلة عند الضغط خارجها
+        document.addEventListener('click', function(e) {
+            const panel = document.getElementById('notif-panel');
+            const bell = document.getElementById('notification-bell');
+            if (panel.classList.contains('open') &&
+                !panel.contains(e.target) &&
+                !bell.contains(e.target)) {
+                panel.classList.remove('open');
+            }
+        });
     } else if (!currentUser) {
         document.getElementById('login-screen').style.display = 'flex';
         document.getElementById('app').style.display = 'none';
