@@ -205,7 +205,7 @@ function closeTaskModal() {
     editingTaskId = null;
 }
 
-function updateProjectsDropdown(selectNew) {
+function updateProjectsDropdown() {
     const type = document.getElementById('task-type').value;
     const sel = document.getElementById('task-project');
     const currentVal = sel.value;
@@ -216,11 +216,7 @@ function updateProjectsDropdown(selectNew) {
         opt.textContent = p;
         sel.appendChild(opt);
     });
-    if (selectNew && projects[type].includes(selectNew)) {
-        sel.value = selectNew;
-    } else if (currentVal && projects[type].includes(currentVal)) {
-        sel.value = currentVal;
-    }
+    if (currentVal && projects[type].includes(currentVal)) sel.value = currentVal;
 }
 
 function saveTask() {
@@ -315,109 +311,6 @@ function duplicateTask(taskId) {
 function todayStr() {
     const d = new Date();
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-}
-
-// ==================== إدارة المشاريع — المودال ====================
-let projectManagerType = 'work';
-
-function openProjectManager(type) {
-    projectManagerType = type;
-    const label = type === 'work' ? '💼 مشاريع العمل' : '🏠 المشاريع الشخصية';
-    document.getElementById('project-modal-title').textContent = 'إدارة ' + label;
-    document.getElementById('project-name-input').value = '';
-    document.getElementById('project-modal').style.display = 'flex';
-    renderProjectList();
-}
-
-function closeProjectModal() {
-    document.getElementById('project-modal').style.display = 'none';
-}
-
-function renderProjectList() {
-    const list = document.getElementById('project-modal-list');
-    const items = projects[projectManagerType] || [];
-    if (!items.length) {
-        list.innerHTML = '<p class="empty-msg">لا توجد مشاريع. أضف أول مشروع!</p>';
-        return;
-    }
-    list.innerHTML = items.map(p => `
-        <div class="project-manager-item">
-            <span class="project-manager-name">${p}</span>
-            <div class="project-manager-actions">
-                <button class="icon-btn" onclick="startEditProject('${p}')" title="تعديل">✏️</button>
-                <button class="icon-btn" onclick="confirmDeleteProject('${p}')" title="حذف">🗑️</button>
-            </div>
-            <div class="project-edit-form" id="edit-${p.replace(/\s/g,'_')}" style="display:none">
-                <input type="text" id="edit-input-${p.replace(/\s/g,'_')}" value="${p}" style="flex:1">
-                <button class="btn btn-sm btn-success" onclick="doEditProject('${p}')">حفظ</button>
-            </div>
-        </div>
-    `).join('');
-}
-
-function saveNewProject() {
-    const name = document.getElementById('project-name-input').value.trim();
-    if (!name) { showToast('❌ أدخل اسم المشروع', 'error'); return; }
-    const items = projects[projectManagerType] || [];
-    if (items.includes(name)) { showToast('❌ المشروع موجود بالفعل', 'error'); return; }
-    addProject(name, projectManagerType);
-    document.getElementById('project-name-input').value = '';
-    renderProjectList();
-}
-
-function startEditProject(name) {
-    document.getElementById('edit-' + name.replace(/\s/g,'_')).style.display = 'flex';
-}
-
-function doEditProject(oldName) {
-    const input = document.getElementById('edit-input-' + oldName.replace(/\s/g,'_'));
-    const newName = input.value.trim();
-    if (!newName) { showToast('❌ أدخل اسم صحيح', 'error'); return; }
-    const items = projects[projectManagerType] || [];
-    if (items.includes(newName) && newName !== oldName) { showToast('❌ الاسم موجود بالفعل', 'error'); return; }
-    editProject(oldName, newName, projectManagerType);
-    document.getElementById('edit-' + oldName.replace(/\s/g,'_')).style.display = 'none';
-    renderProjectList();
-}
-
-// ==================== إضافة/حذف مشروع من مودال المهمة ====================
-function showQuickAddProject() {
-    document.getElementById('quick-add-project').style.display = 'flex';
-    document.getElementById('quick-project-name').focus();
-}
-function cancelQuickAddProject() {
-    document.getElementById('quick-add-project').style.display = 'none';
-    document.getElementById('quick-project-name').value = '';
-}
-function confirmQuickAddProject() {
-    const name = document.getElementById('quick-project-name').value.trim();
-    const type = document.getElementById('task-type').value;
-    if (!name) return;
-    if ((projects[type] || []).includes(name)) {
-        showToast('⚠️ المشروع موجود مسبقاً', 'error');
-        return;
-    }
-    addProject(name, type);
-    if (!projects[type]) projects[type] = [];
-    projects[type].push(name);
-    cancelQuickAddProject();
-    updateProjectsDropdown(name);
-}
-function confirmDeleteSelectedProject() {
-    const sel = document.getElementById('task-project');
-    const name = sel.value;
-    if (!name) { showToast('⚠️ اختر مشروعاً أولاً', 'error'); return; }
-    const type = document.getElementById('task-type').value;
-    showConfirm('حذف المشروع', 'سيتم حذف المشروع "' + name + '".', () => {
-        deleteProject(name, type);
-    });
-}
-
-function confirmDeleteProject(name) {
-    showConfirm('حذف المشروع', 'سيتم حذف المشروع "' + name + '". المهام المرتبطة به لن تتأثر.', () => {
-        deleteProject(name, projectManagerType);
-        renderProjectList();
-    });
 }
 
 // ==================== التصفية والعرض ====================
@@ -672,22 +565,75 @@ function changeMonth(dir) {
 // ==================== المشاريع ====================
 function renderProjects() {
     ['work', 'personal'].forEach(type => {
-        (projects[type] || []).forEach(proj => {
-            const count = tasks.filter(t => t.project === proj && !t.archived).length;
-            const el = document.getElementById('pcount-' + proj);
-            if (el) el.textContent = count + ' مهام';
-        });
+        const container = document.getElementById('proj-list-' + type);
+        if (!container) return;
+        const items = projects[type] || [];
+        if (!items.length) {
+            container.innerHTML = '<p class="empty-msg" style="margin:12px 0">لا توجد مشاريع. أضف أول مشروع!</p>';
+            return;
+        }
+        container.innerHTML = items.map(p => {
+            const count = tasks.filter(t => t.project === p && !t.archived).length;
+            const icon = p.charAt(0).toUpperCase();
+            const colors = ['#6c5ce7','#00cec9','#fd79a8','#00b894','#fdcb6e','#e17055','#0984e3','#d63031','#6c5ce7','#00b894'];
+            const color = colors[items.indexOf(p) % colors.length];
+            return `
+            <div class="project-card" onclick="filterByProject('${p.replace(/'/g,"\\'")}')">
+                <div class="project-icon" style="background:${color}">${icon}</div>
+                <div class="project-info">
+                    <div class="project-name">${p}</div>
+                    <div class="project-count">${count} مهام</div>
+                </div>
+                <div class="project-card-actions">
+                    <button class="icon-btn" onclick="event.stopPropagation();startEditProjectFromPage('${p.replace(/'/g,"\\'")}','${type}')" title="تعديل">✏️</button>
+                    <button class="icon-btn" onclick="event.stopPropagation();confirmDeleteProjectFromPage('${p.replace(/'/g,"\\'")}','${type}')" title="حذف">🗑️</button>
+                </div>
+            </div>
+            <div class="project-edit-inline" id="edit-inline-${p.replace(/\s/g,'_')}" style="display:none">
+                <input type="text" id="edit-input-${p.replace(/\s/g,'_')}" value="${p}" style="flex:1">
+                <button class="btn btn-sm btn-success" onclick="doEditProjectFromPage('${p.replace(/'/g,"\\'")}','${type}')">حفظ</button>
+                <button class="btn btn-sm btn-secondary" onclick="cancelEditProjectFromPage('${p.replace(/\s/g,'_')}')">إلغاء</button>
+            </div>`;
+        }).join('');
     });
-    renderProjectTags();
 }
 
-function renderProjectTags() {
-    ['work', 'personal'].forEach(type => {
-        const el = document.getElementById('project-list-' + type);
-        if (!el) return;
-        const items = projects[type] || [];
-        el.innerHTML = items.map(p => `<span class="project-tag">${p}</span>`).join('');
-        if (!items.length) el.innerHTML = '<span style="font-size:12px;color:var(--text-muted)">لا توجد مشاريع</span>';
+function addProjectFromPage(type) {
+    const input = document.getElementById('project-input-' + type);
+    const name = input.value.trim();
+    if (!name) { showToast('❌ أدخل اسم المشروع', 'error'); return; }
+    if ((projects[type] || []).includes(name)) { showToast('⚠️ المشروع موجود مسبقاً', 'error'); return; }
+    addProject(name, type);
+    if (!projects[type]) projects[type] = [];
+    projects[type].push(name);
+    input.value = '';
+    renderProjects();
+}
+
+function startEditProjectFromPage(name, type) {
+    document.getElementById('edit-inline-' + name.replace(/\s/g,'_')).style.display = 'flex';
+}
+
+function cancelEditProjectFromPage(id) {
+    document.getElementById('edit-inline-' + id).style.display = 'none';
+}
+
+function doEditProjectFromPage(oldName, type) {
+    const input = document.getElementById('edit-input-' + oldName.replace(/\s/g,'_'));
+    const newName = input.value.trim();
+    if (!newName) { showToast('❌ أدخل اسم صحيح', 'error'); return; }
+    if ((projects[type] || []).includes(newName) && newName !== oldName) { showToast('⚠️ الاسم موجود بالفعل', 'error'); return; }
+    editProject(oldName, newName, type);
+    projects[type] = projects[type].map(p => p === oldName ? newName : p);
+    document.getElementById('edit-inline-' + oldName.replace(/\s/g,'_')).style.display = 'none';
+    renderProjects();
+}
+
+function confirmDeleteProjectFromPage(name, type) {
+    showConfirm('حذف المشروع', 'سيتم حذف المشروع "' + name + '".', () => {
+        deleteProject(name, type);
+        projects[type] = (projects[type] || []).filter(p => p !== name);
+        renderProjects();
     });
 }
 

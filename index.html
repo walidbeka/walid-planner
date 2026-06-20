@@ -251,57 +251,18 @@
                     <button class="project-tab" onclick="switchProjectTab('personal')" id="ptab-personal">🏠 شخصي</button>
                 </div>
                 <div id="projects-work" class="project-section active">
-                    <div class="project-card" onclick="filterByProject('Bruce Group')">
-                        <div class="project-icon" style="background:#6c5ce7">B</div>
-                        <div class="project-info">
-                            <div class="project-name">Bruce Group</div>
-                            <div class="project-count" id="pcount-Bruce Group">0 مهام</div>
-                        </div>
+                    <div class="project-add-wrap">
+                        <input type="text" id="project-input-work" placeholder="اسم المشروع الجديد">
+                        <button class="btn btn-primary btn-sm" onclick="addProjectFromPage('work')">➕ إضافة</button>
                     </div>
-                    <div class="project-card" onclick="filterByProject('WDY Media')">
-                        <div class="project-icon" style="background:#00cec9">W</div>
-                        <div class="project-info">
-                            <div class="project-name">WDY Media</div>
-                            <div class="project-count" id="pcount-WDY Media">0 مهام</div>
-                        </div>
-                    </div>
-                    <div class="project-card" onclick="filterByProject('DOYA')">
-                        <div class="project-icon" style="background:#fd79a8">D</div>
-                        <div class="project-info">
-                            <div class="project-name">DOYA</div>
-                            <div class="project-count" id="pcount-DOYA">0 مهام</div>
-                        </div>
-                    </div>
+                    <div id="proj-list-work" class="project-list"></div>
                 </div>
                 <div id="projects-personal" class="project-section">
-                    <div class="project-card" onclick="filterByProject('المنزل')">
-                        <div class="project-icon" style="background:#00b894">🏠</div>
-                        <div class="project-info">
-                            <div class="project-name">المنزل</div>
-                            <div class="project-count" id="pcount-المنزل">0 مهام</div>
-                        </div>
+                    <div class="project-add-wrap">
+                        <input type="text" id="project-input-personal" placeholder="اسم المشروع الجديد">
+                        <button class="btn btn-primary btn-sm" onclick="addProjectFromPage('personal')">➕ إضافة</button>
                     </div>
-                    <div class="project-card" onclick="filterByProject('السيارة')">
-                        <div class="project-icon" style="background:#fdcb6e">🚗</div>
-                        <div class="project-info">
-                            <div class="project-name">السيارة</div>
-                            <div class="project-count" id="pcount-السيارة">0 مهام</div>
-                        </div>
-                    </div>
-                    <div class="project-card" onclick="filterByProject('العائلة')">
-                        <div class="project-icon" style="background:#e17055">👨‍👩‍👧‍👦</div>
-                        <div class="project-info">
-                            <div class="project-name">العائلة</div>
-                            <div class="project-count" id="pcount-العائلة">0 مهام</div>
-                        </div>
-                    </div>
-                    <div class="project-card" onclick="filterByProject('الأمور المالية')">
-                        <div class="project-icon" style="background:#0984e3">💰</div>
-                        <div class="project-info">
-                            <div class="project-name">الأمور المالية</div>
-                            <div class="project-count" id="pcount-الأمور المالية">0 مهام</div>
-                        </div>
-                    </div>
+                    <div id="proj-list-personal" class="project-list"></div>
                 </div>
             </section>
 
@@ -350,17 +311,9 @@
                         </div>
                     </div>
                     <div class="card">
-                        <h3>📁 إدارة المشاريع</h3>
-                        <div class="setting-item">
-                            <span>💼 مشاريع العمل</span>
-                            <button class="btn btn-sm btn-primary" onclick="openProjectManager('work')">إدارة</button>
-                        </div>
-                        <div id="project-list-work" class="project-tags" style="margin-bottom:12px"></div>
-                        <div class="setting-item">
-                            <span>🏠 مشاريع شخصية</span>
-                            <button class="btn btn-sm btn-primary" onclick="openProjectManager('personal')">إدارة</button>
-                        </div>
-                        <div id="project-list-personal" class="project-tags" style="margin-bottom:12px"></div>
+                        <h3>📁 المشاريع</h3>
+                        <p style="font-size:13px;color:var(--text-secondary);margin-bottom:8px">إدارة المشاريع (إضافة، تعديل، حذف) من صفحة المشاريع</p>
+                        <button class="btn btn-sm btn-primary" onclick="navigate('projects')">فتح صفحة المشاريع</button>
                     </div>
                     <div class="card">
                         <h3>📊 النسخ الاحتياطي</h3>
@@ -425,16 +378,7 @@
                     </div>
                     <div class="form-group">
                         <label>المشروع</label>
-                        <div class="project-select-wrap">
-                            <select id="task-project"></select>
-                            <button type="button" class="icon-btn icon-btn-sm" onclick="showQuickAddProject()" title="إضافة مشروع" id="btn-add-project">➕</button>
-                            <button type="button" class="icon-btn icon-btn-sm" onclick="confirmDeleteSelectedProject()" title="حذف المشروع المحدد" id="btn-delete-project">🗑️</button>
-                        </div>
-                        <div class="quick-add-project" id="quick-add-project" style="display:none">
-                            <input type="text" id="quick-project-name" placeholder="اسم المشروع الجديد">
-                            <button class="btn btn-sm btn-primary" onclick="confirmQuickAddProject()">إضافة</button>
-                            <button class="btn btn-sm btn-secondary" onclick="cancelQuickAddProject()">إلغاء</button>
-                        </div>
+                        <select id="task-project"></select>
                     </div>
                 </div>
                 <div class="form-row">
@@ -470,29 +414,6 @@
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeTaskModal()">إلغاء</button>
                 <button class="btn btn-primary" id="modal-save-btn" onclick="saveTask()">💾 حفظ المهمة</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- ==================== مودال إدارة المشاريع ==================== -->
-    <div class="modal-overlay" id="project-modal" style="display:none" onclick="closeModalOnOverlay(event)">
-        <div class="modal">
-            <div class="modal-header">
-                <h2 id="project-modal-title">إدارة المشاريع</h2>
-                <button class="icon-btn" onclick="closeProjectModal()">✕</button>
-            </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label>إضافة مشروع جديد</label>
-                    <div style="display:flex;gap:8px">
-                        <input type="text" id="project-name-input" placeholder="اسم المشروع" style="flex:1">
-                        <button class="btn btn-primary" onclick="saveNewProject()">➕ إضافة</button>
-                    </div>
-                </div>
-                <div id="project-modal-list" style="margin-top:16px"></div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeProjectModal()">إغلاق</button>
             </div>
         </div>
     </div>
