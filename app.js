@@ -543,16 +543,16 @@ function createTaskHTML(task) {
 
 // ==================== الصفحة الرئيسية ====================
 const QUOTES = [
-    '🚀 "النجاح ليس غياب الفشل، بل هو الإصرار على تحقيق أهدافك."',
-    '💪 "كل يوم هو فرصة جديدة لتحقيق شيء عظيم."',
-    '🎯 "التركيز هو مفتاح الإنجاز. حدد هدفك وانطلق."',
-    '🔥 "لا تؤجل عمل اليوم إلى الغد. ابدأ الآن!"',
-    '🌟 "العمل الجاد يتغلب على الموهبة عندما لا تعمل الموهبة بجد."',
-    '📈 "التقدم ليس حادثاً، بل هو نتيجة العمل المستمر."',
-    '⚡ "الانضباط هو الفرق بين الأحلام والإنجازات."',
-    '🏆 "الناجحون لا يفكرون بشكل مختلف فقط، بل يعملون بشكل مختلف."',
-    '💡 "أفضل وقت لبدء شيء هو الآن. الوقت المناسب لن يأتي."',
-    '🌅 "كل صباح هو بداية جديدة. اجعل اليوم أفضل من الأمس."',
+    { text: 'المهام الكبيرة تبدأ بخطوة صغيرة. ابدأ الآن ولن تندم.', author: 'بروفيسور شولتس' },
+    { text: 'ليس المهم أن تفعل كل شيء، المهم أن تفعل الشيء الصحيح.', author: 'آدم غرانت' },
+    { text: 'لا تنتظر أن يصبح لديك وقت. خذ الوقت الذي لديك وابدأ به.', author: 'جون وودن' },
+    { text: 'التنظيم هو الخطوة الأولى نحو الإنجاز.', author: 'فرانكلين كوفي' },
+    { text: 'كل مهمة مكتملة كانت في يوم ما مجرد فكرة. اليوم أنت تبدأ.', author: 'أنت' },
+    { text: 'أفضل طريقة لإنهاء مشروع صعب هي أن تبدأ به.', author: 'مارك توين' },
+    { text: 'الانتصار ليس في التخطيط للعمل، بل في العمل على التخطيط.', author: 'نابليون بونابرت' },
+    { text: 'لا تدع الكمال يكون عدو الإنجاز. أنجز اليوم ما تستطيع.', author: 'voltaire' },
+    { text: 'ال┙يق يصنع الفرق بين من يحلم ومن ينجز.', author: 'جوردن بيتشر' },
+    { text: 'ما لا يُقاس لا يُدار. حدد هدفك今天 وتابع تقدمك.', author: 'بيتر دراكر' },
 ];
 
 function renderHome() {
@@ -563,8 +563,17 @@ function renderHome() {
     const dateStr = dayName + '، ' + now.getDate() + ' ' + monthName + ' ' + now.getFullYear();
     document.getElementById('home-date').textContent = dateStr;
 
-    // اقتباس تحفيزي عشوائي
-    document.getElementById('home-quote').textContent = QUOTES[Math.floor(Math.random() * QUOTES.length)];
+    // ترحيب حسب الوقت
+    const hour = now.getHours();
+    let greeting = 'مساء الخير 🌙';
+    if (hour >= 5 && hour < 12) greeting = 'صباح النور ☀️';
+    else if (hour >= 12 && hour < 17) greeting = 'مساء النور 🌤️';
+    else if (hour >= 17 && hour < 21) greeting = 'مساء الخير 🌅';
+    document.getElementById('home-greeting').textContent = greeting;
+
+    // اقتباس تحفيزي
+    const q = QUOTES[Math.floor(Math.random() * QUOTES.length)];
+    document.getElementById('home-quote').innerHTML = '<span class="quote-text">「' + q.text + '」</span><span class="quote-author">— ' + q.author + '</span>';
 
     const todayTasks = tasks.filter(t => t.date === today && !t.archived);
     const overdueTasks = tasks.filter(t => t.date < today && t.status !== 'completed' && !t.archived);
