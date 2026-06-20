@@ -496,13 +496,14 @@ function renderHome() {
 }
 
 function updateClock() {
+    const cairo = document.getElementById('clock-cairo');
+    const riyadh = document.getElementById('clock-riyadh');
+    if (!cairo || !riyadh) return;
     const now = new Date();
-    const opts = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
-    document.getElementById('clock-cairo').textContent = now.toLocaleTimeString('ar-EG', { ...opts, timeZone: 'Africa/Cairo' });
-    document.getElementById('clock-riyadh').textContent = now.toLocaleTimeString('ar-SA', { ...opts, timeZone: 'Asia/Riyadh' });
+    const opts = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true };
+    cairo.textContent = now.toLocaleTimeString('ar-EG', Object.assign({}, opts, { timeZone: 'Africa/Cairo' }));
+    riyadh.textContent = now.toLocaleTimeString('ar-SA', Object.assign({}, opts, { timeZone: 'Asia/Riyadh' }));
 }
-updateClock();
-setInterval(updateClock, 1000);
 
 function updateProgress() {
     const total = tasks.filter(t => !t.archived).length;
@@ -991,6 +992,10 @@ firebase.auth().onAuthStateChanged(user => {
                 panel.classList.remove('open');
             }
         });
+        // تشغيل الساعة
+        updateClock();
+        if (window.clockInterval) clearInterval(window.clockInterval);
+        window.clockInterval = setInterval(updateClock, 1000);
         // استعادة آخر صفحة من الهاش
         const page = location.hash.replace('#page-', '') || 'home';
         if (page !== 'home') navigate(page);
