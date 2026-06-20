@@ -1,12 +1,12 @@
 // Firebase Configuration
 // استبدل هذه القيم بمشروعك الفعلي من Firebase Console
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT_ID.appspot.com",
-    messagingSenderId: "YOUR_SENDER_ID",
-    appId: "YOUR_APP_ID"
+    apiKey: "AIzaSyApivqWcW5MQsYHEBDEdWmFqCV-PTBAujc",
+    authDomain: "shoptok-tlanb.firebaseapp.com",
+    projectId: "shoptok-tlanb",
+    storageBucket: "shoptok-tlanb.firebasestorage.app",
+    messagingSenderId: "1021714378106",
+    appId: "1:1021714378106:web:fa33af5ff801c9568ebac3"
 };
 
 // البريد الإلكتروني المسموح به فقط (حسابك الشخصي)
