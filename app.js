@@ -452,11 +452,27 @@ function createTaskHTML(task) {
 }
 
 // ==================== الصفحة الرئيسية ====================
+const QUOTES = [
+    '🚀 "النجاح ليس غياب الفشل، بل هو الإصرار على تحقيق أهدافك."',
+    '💪 "كل يوم هو فرصة جديدة لتحقيق شيء عظيم."',
+    '🎯 "التركيز هو مفتاح الإنجاز. حدد هدفك وانطلق."',
+    '🔥 "لا تؤجل عمل اليوم إلى الغد. ابدأ الآن!"',
+    '🌟 "العمل الجاد يتغلب على الموهبة عندما لا تعمل الموهبة بجد."',
+    '📈 "التقدم ليس حادثاً، بل هو نتيجة العمل المستمر."',
+    '⚡ "الانضباط هو الفرق بين الأحلام والإنجازات."',
+    '🏆 "الناجحون لا يفكرون بشكل مختلف فقط، بل يعملون بشكل مختلف."',
+    '💡 "أفضل وقت لبدء شيء هو الآن. الوقت المناسب لن يأتي."',
+    '🌅 "كل صباح هو بداية جديدة. اجعل اليوم أفضل من الأمس."',
+];
+
 function renderHome() {
     const today = todayStr();
     const now = new Date();
     const dateStr = now.toLocaleDateString('ar-SA', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
     document.getElementById('home-date').textContent = dateStr;
+
+    // اقتباس تحفيزي عشوائي
+    document.getElementById('home-quote').textContent = QUOTES[Math.floor(Math.random() * QUOTES.length)];
 
     const todayTasks = tasks.filter(t => t.date === today && !t.archived);
     const overdueTasks = tasks.filter(t => t.date < today && t.status !== 'completed' && !t.archived);
@@ -478,6 +494,15 @@ function renderHome() {
         ? overdueTasks.slice(0, 5).map(t => createTaskHTML(t)).join('')
         : '<p class="empty-msg">لا توجد مهام متأخرة 👍</p>';
 }
+
+function updateClock() {
+    const now = new Date();
+    const opts = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
+    document.getElementById('clock-cairo').textContent = now.toLocaleTimeString('ar-EG', { ...opts, timeZone: 'Africa/Cairo' });
+    document.getElementById('clock-riyadh').textContent = now.toLocaleTimeString('ar-SA', { ...opts, timeZone: 'Asia/Riyadh' });
+}
+updateClock();
+setInterval(updateClock, 1000);
 
 function updateProgress() {
     const total = tasks.filter(t => !t.archived).length;
