@@ -81,7 +81,14 @@ function navigate(page, params) {
     if (page === 'search') document.getElementById('global-search-input').focus();
     if (page === 'archive') renderArchive();
     if (page === 'settings') { document.getElementById('theme-toggle-setting').checked = localStorage.getItem('wp_theme') === 'dark'; }
+    if (location.hash !== '#page-' + page) location.hash = 'page-' + page;
 }
+
+window.addEventListener('hashchange', () => {
+    const page = location.hash.replace('#page-', '') || 'home';
+    const el = document.getElementById('page-' + page);
+    if (el) navigate(page);
+});
 
 // ==================== القائمة الجانبية ====================
 function toggleSidebar() {
@@ -959,6 +966,9 @@ firebase.auth().onAuthStateChanged(user => {
                 panel.classList.remove('open');
             }
         });
+        // استعادة آخر صفحة من الهاش
+        const page = location.hash.replace('#page-', '') || 'home';
+        if (page !== 'home') navigate(page);
     } else if (!currentUser) {
         document.getElementById('login-screen').style.display = 'flex';
         document.getElementById('app').style.display = 'none';
