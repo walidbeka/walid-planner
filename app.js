@@ -861,28 +861,24 @@ function testReminderEmail() {
     const overdueTasks = tasks.filter(t => t.date < today && t.status !== 'completed' && !t.archived);
     const highPriorityToday = tasks.filter(t => t.date === today && t.priority === 'high' && t.status !== 'completed' && !t.archived);
 
-    let body = '📋 Walid Planner - ملخص المهام\n';
-    body += '═══════════════════════\n\n';
+    let body = '';
     if (todayTasks.length) {
         body += '📅 مهام اليوم (' + todayTasks.length + '):\n';
-        todayTasks.forEach(t => { body += '• ' + t.name + ' [' + (t.priority === 'high' ? '🔴' : t.priority === 'medium' ? '🟡' : '🟢') + ']' + (t.project ? ' - ' + t.project : '') + '\n'; });
+        todayTasks.forEach(t => { body += '- ' + t.name + '\n'; });
     }
     if (overdueTasks.length) {
         body += '\n🔴 مهام متأخرة (' + overdueTasks.length + '):\n';
-        overdueTasks.forEach(t => { body += '• ' + t.name + ' (تاريخها: ' + t.date + ')' + '\n'; });
-    }
-    if (highPriorityToday.length) {
-        body += '\n⚠️ أولوية عالية (' + highPriorityToday.length + '):\n';
-        highPriorityToday.forEach(t => { body += '• ' + t.name + '\n'; });
+        overdueTasks.forEach(t => { body += '- ' + t.name + '\n'; });
     }
     if (!todayTasks.length && !overdueTasks.length) {
-        body += '🎉 لا توجد مهام اليوم!\n';
+        body = '🎉 لا توجد مهام اليوم!\n';
     }
-    body += '\n━━━━━━━━━━━━━━━━━━━\nWalid Planner';
 
-    const subject = encodeURIComponent('Walid Planner - ملخص المهام اليومية');
+    const subject = encodeURIComponent('Walid Planner - ملخص المهام');
     const mailBody = encodeURIComponent(body);
-    window.location.href = 'mailto:' + email + '?subject=' + subject + '&body=' + mailBody;
+    const link = document.createElement('a');
+    link.href = 'mailto:' + email + '?subject=' + subject + '&body=' + mailBody;
+    link.click();
     showToast('📨 تم فتح البريد لإرسال الاختبار', 'success');
 }
 
@@ -1039,6 +1035,7 @@ firebase.auth().onAuthStateChanged(user => {
         document.getElementById('settings-email').value = localStorage.getItem('wp_allowed_email') || user.email;
         applySavedTheme();
         updateProjectsDropdown();
+        loadProjects();
         loadTasks();
         setupDailyReminder();
         requestNotificationPermission();
