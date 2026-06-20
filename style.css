@@ -266,48 +266,63 @@ body {
 
 /* === قوائم المهام === */
 .task-mini-list { min-height: 40px; }
-.task-mini-item, .task-item {
+.task-mini-item {
     display: flex; align-items: center; gap: 10px;
     padding: 10px 12px; border-radius: var(--radius-sm);
     cursor: pointer; transition: var(--transition);
     border-bottom: 1px solid var(--border-light);
 }
-.task-mini-item:last-child, .task-item:last-child { border-bottom: none; }
-.task-mini-item:hover, .task-item:hover { background: var(--bg-input); }
-.task-item.completed .task-text { text-decoration: line-through; opacity: 0.5; }
+.task-mini-item:last-child { border-bottom: none; }
+.task-mini-item:hover { background: var(--bg-input); }
+
+.task-item {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 16px; border-radius: var(--radius);
+    cursor: pointer; transition: var(--transition);
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
+    box-shadow: var(--shadow);
+    margin-bottom: 10px;
+}
+.task-item:last-child { margin-bottom: 0; }
+.task-item:hover { box-shadow: var(--shadow-lg); transform: translateY(-1px); border-color: var(--primary-light); }
+.task-item.completed { opacity: 0.55; }
+.task-item.completed .task-text { text-decoration: line-through; }
+.task-item.overdue { border-right: 3px solid var(--danger); }
 
 .task-check {
-    width: 20px; height: 20px; border-radius: 50%;
+    width: 22px; height: 22px; border-radius: 50%;
     border: 2px solid var(--border); flex-shrink: 0;
     display: flex; align-items: center; justify-content: center;
     cursor: pointer; transition: var(--transition);
-    font-size: 11px; color: transparent;
+    font-size: 12px; color: transparent;
+    margin-top: 2px;
 }
 .task-check:hover { border-color: var(--primary); }
 .task-check.done { background: var(--success); border-color: var(--success); color: #fff; }
 
 .task-content { flex: 1; min-width: 0; }
-.task-text { font-size: 14px; font-weight: 500; }
-.task-meta { display: flex; flex-wrap: wrap; gap: 4px; font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
-.task-actions { display: flex; gap: 2px; align-items: center; flex-shrink: 0; }
-.task-actions .icon-btn { width: 28px; height: 28px; font-size: 14px; }
+.task-text { font-size: 15px; font-weight: 600; color: var(--text); line-height: 1.5; }
+.task-meta { display: flex; flex-wrap: wrap; gap: 6px; font-size: 12px; color: var(--text-secondary); margin-top: 8px; }
+.task-actions { display: flex; gap: 4px; align-items: flex-start; flex-shrink: 0; }
+.task-actions .icon-btn { width: 30px; height: 30px; font-size: 14px; border-radius: var(--radius-sm); }
 
 .empty-msg { text-align: center; padding: 24px 16px; color: var(--text-muted); font-size: 13px; }
 
 /* === شارات الأولوية === */
-.priority-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; }
+.priority-badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; }
 .priority-high { background: #ffe5e5; color: #d63031; }
 .priority-medium { background: #fff3d6; color: #e0a800; }
 .priority-low { background: #e5faf0; color: #00a381; }
 
 /* === شارة الحالة === */
-.status-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; }
+.status-badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 11px; }
 .status-new { background: var(--primary-light); color: var(--primary); }
 .status-in-progress { background: #fff3d6; color: #e0a800; }
 .status-completed { background: #e5faf0; color: var(--success); }
 
 /* === شارة النوع === */
-.type-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; }
+.type-badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 11px; }
 .type-work { background: #e8e5ff; color: var(--primary); }
 .type-personal { background: #e5f7ff; color: #0984e3; }
 

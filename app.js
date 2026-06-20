@@ -517,7 +517,7 @@ function createTaskHTML(task) {
     const priorityLabel = { high: 'عالية', medium: 'متوسطة', low: 'منخفضة' };
     const statusLabel = { new: 'جديدة', in_progress: 'جاري التنفيذ', completed: 'مكتملة' };
     const isOverdue = task.date < todayStr() && task.status !== 'completed';
-    return `<div class="task-item ${task.status === 'completed' ? 'completed' : ''}" style="${isOverdue ? 'border-right: 3px solid var(--danger);' : ''}">
+    return `<div class="task-item ${task.status === 'completed' ? 'completed' : ''} ${isOverdue ? 'overdue' : ''}">
         <div class="task-check ${task.status === 'completed' ? 'done' : ''}" onclick="toggleTaskComplete('${task.id}')">
             ${task.status === 'completed' ? '✓' : ''}
         </div>
@@ -527,10 +527,10 @@ function createTaskHTML(task) {
                 <span class="type-badge type-${task.type}">${task.type === 'work' ? '💼 عمل' : '🏠 شخصي'}</span>
                 <span class="priority-badge priority-${task.priority}">${priorityLabel[task.priority]}</span>
                 <span class="status-badge status-${task.status}">${statusLabel[task.status]}</span>
-                ${task.project ? '<span>📁 ' + task.project + '</span>' : ''}
-                ${task.date ? '<span>📅 ' + task.date + '</span>' : ''}
-                ${task.time ? '<span>⏰ ' + task.time + '</span>' : ''}
-                ${isOverdue ? '<span style="color:var(--danger);font-weight:600;">🔴 متأخرة</span>' : ''}
+                ${task.project ? '<span class="type-badge" style="background:#fef3c7;color:#92400e;">📁 ' + task.project + '</span>' : ''}
+                ${task.date ? '<span class="type-badge" style="background:#f0f0f0;color:#555;">📅 ' + task.date + '</span>' : ''}
+                ${task.time ? '<span class="type-badge" style="background:#f0f0f0;color:#555;">⏰ ' + task.time + '</span>' : ''}
+                ${isOverdue ? '<span class="priority-badge priority-high">🔴 متأخرة</span>' : ''}
             </div>
         </div>
         <div class="task-actions">
