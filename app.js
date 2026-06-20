@@ -152,7 +152,10 @@ function loadProjects() {
 
 function addProject(name, type) {
     if (!currentUser || !name.trim()) return;
-    db.collection('users').doc(currentUser.uid).collection('projects').add({ name: name.trim(), type, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+    db.collection('users').doc(currentUser.uid).collection('projects').add({ name: name.trim(), type, createdAt: firebase.firestore.FieldValue.serverTimestamp() }).catch(err => {
+        console.error('Firestore add error:', err);
+        showToast('❌ فشل الحفظ: ' + err.message, 'error');
+    });
     showToast('✅ تم إضافة المشروع', 'success');
 }
 
@@ -477,7 +480,7 @@ const QUOTES = [
 function renderHome() {
     const today = todayStr();
     const now = new Date();
-    const dateStr = now.toLocaleDateString('ar-SA', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
     document.getElementById('home-date').textContent = dateStr;
 
     // اقتباس تحفيزي عشوائي
@@ -510,12 +513,11 @@ function updateClock() {
     if (!cairo || !riyadh) return;
     const now = new Date();
     function fmt(tz) {
-        const p = new Intl.DateTimeFormat('en', { timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false }).formatToParts(now);
-        const h = +p.find(x => x.type === 'hour').value;
-        const m = p.find(x => x.type === 'minute').value;
+        const s = now.toLocaleString('en-US', { timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false });
+        const [h, m] = s.split(':').map(Number);
         const ampm = h >= 12 ? 'مساءاً' : 'صباحاً';
         const h12 = h % 12 || 12;
-        return String(h12).padStart(2,'0') + ':' + m + ' ' + ampm;
+        return String(h12).padStart(2,'0') + ':' + String(m).padStart(2,'0') + ' ' + ampm;
     }
     cairo.textContent = fmt('Africa/Cairo');
     riyadh.textContent = fmt('Asia/Riyadh');
