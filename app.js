@@ -980,11 +980,7 @@ function sendDailyReminder() {
 // 3. اضغط Enable
 // 4. بعدها الإيميل هينبعت تلقائي من Gmail بتاعك
 
-function sendEmail(subject, body, toEmail) {
-    if (!gmailAccessToken) {
-        showToast('❌ سجل خروج وادخل تاني عشان الإيميل يشتغل', 'error');
-        return;
-    }
+function actuallySendEmail(subject, body, toEmail, token) {
     const emailContent = [
         'From: "Walid Planner" <' + toEmail + '>',
         'To: ' + toEmail,
@@ -999,7 +995,7 @@ function sendEmail(subject, body, toEmail) {
     fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
         method: 'POST',
         headers: {
-            'Authorization': 'Bearer ' + gmailAccessToken,
+            'Authorization': 'Bearer ' + token,
             'Content-Type': 'application/json'
         },
         body: JSON.stringify({ raw: encoded })
@@ -1008,12 +1004,27 @@ function sendEmail(subject, body, toEmail) {
         else { return r.json().then(e => { throw new Error(e.error.message); }); }
     }).catch(err => {
         console.error('Gmail API error:', err);
-        if (err.message.includes('access')) {
-            showToast('❌ سجل خروج وادخل تاني عشان الإيميل يشتغل', 'error');
-        } else {
-            showToast('❌ فشل الإرسال: ' + err.message, 'error');
-        }
+        showToast('❌ فشل الإرسال: ' + err.message, 'error');
     });
+}
+
+function sendEmail(subject, body, toEmail) {
+    if (gmailAccessToken) {
+        actuallySendEmail(subject, body, toEmail, gmailAccessToken);
+        return;
+    }
+    // لو التوكين مش موجود (بعد Refresh)، نطلبه تاني
+    showToast('⏳ جاري طلب صلاحية الإيميل...', 'info');
+    const provider = new firebase.auth.GoogleAuthProvider();
+    provider.addScope('https://www.googleapis.com/auth/gmail.send');
+    firebase.auth().currentUser.reauthenticateWithPopup(provider)
+        .then(result => {
+            gmailAccessToken = result.credential.accessToken;
+            actuallySendEmail(subject, body, toEmail, gmailAccessToken);
+        })
+        .catch(err => {
+            showToast('❌ فشل الإرسال: ' + (err.message || 'لم يتم الموافقة'), 'error');
+        });
 }
 
 // ==================== الإعدادات ====================
