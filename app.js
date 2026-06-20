@@ -398,6 +398,8 @@ function confirmQuickAddProject() {
         return;
     }
     addProject(name, type);
+    if (!projects[type]) projects[type] = [];
+    projects[type].push(name);
     cancelQuickAddProject();
     updateProjectsDropdown(name);
 }
