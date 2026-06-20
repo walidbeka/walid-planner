@@ -565,15 +565,16 @@ function renderHome() {
 
     // ترحيب حسب الوقت
     const hour = now.getHours();
-    let greeting = 'مساء الخير 🌙';
-    if (hour >= 5 && hour < 12) greeting = 'صباح النور ☀️';
-    else if (hour >= 12 && hour < 17) greeting = 'مساء النور 🌤️';
-    else if (hour >= 17 && hour < 21) greeting = 'مساء الخير 🌅';
+    const firstName = (currentUser.displayName || '').split(' ')[0] || 'صديقي';
+    let greeting = 'مساء الخير ' + firstName + ' 🌙';
+    if (hour >= 5 && hour < 12) greeting = 'صباح النور ' + firstName + ' ☀️';
+    else if (hour >= 12 && hour < 17) greeting = 'مساء النور ' + firstName + ' 🌤️';
+    else if (hour >= 17 && hour < 21) greeting = 'مساء الخير ' + firstName + ' 🌅';
     document.getElementById('home-greeting').textContent = greeting;
 
     // اقتباس تحفيزي
     const q = QUOTES[Math.floor(Math.random() * QUOTES.length)];
-    document.getElementById('home-quote').innerHTML = '<span class="quote-text">「' + q.text + '」</span><span class="quote-author">— ' + q.author + '</span>';
+    document.getElementById('home-quote').innerHTML = '<span class="quote-text">« ' + q.text + ' »</span><span class="quote-author">— ' + q.author + '</span>';
 
     const todayTasks = tasks.filter(t => t.date === today && !t.archived);
     const overdueTasks = tasks.filter(t => t.date < today && t.status !== 'completed' && !t.archived);
