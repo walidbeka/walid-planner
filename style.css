@@ -486,9 +486,10 @@ body {
 .toggle input:checked + .toggle-slider::before { transform: translateX(-20px); }
 
 /* === قائمة الإشعارات المنسدلة === */
+.notif-wrapper { position: relative; }
 .notif-panel {
-    position: absolute; top: calc(100% + 6px); right: 0; z-index: 300;
-    width: 320px; max-width: 85vw; max-height: 60vh;
+    position: absolute; top: calc(100% + 6px); left: 0; right: auto; z-index: 300;
+    width: 320px; max-width: 90vw; max-height: 60vh;
     background: var(--bg-card); box-shadow: 0 8px 30px rgba(0,0,0,0.15);
     border: 1px solid var(--border); border-radius: 10px;
     display: flex; flex-direction: column;
@@ -500,11 +501,11 @@ body {
     opacity: 1; visibility: visible; transform: translateY(0);
 }
 .notif-panel::before {
-    content: ''; position: absolute; top: -6px; left: auto; right: 16px;
+    content: ''; position: absolute; top: -6px; left: 16px; right: auto;
     width: 12px; height: 12px;
     background: var(--bg-card);
     border: 1px solid var(--border);
-    border-right: none; border-bottom: none;
+    border-left: none; border-bottom: none;
     transform: rotate(45deg);
 }
 .notif-header {

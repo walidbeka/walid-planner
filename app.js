@@ -127,6 +127,7 @@ function getTaskDocRef(taskId) {
 function loadProjects() {
     if (!currentUser) return;
     const ref = db.collection('users').doc(currentUser.uid).collection('projects');
+    let ready = false;
     ref.onSnapshot(snapshot => {
         const work = []; const personal = [];
         snapshot.forEach(doc => {
@@ -134,10 +135,26 @@ function loadProjects() {
             if (p.type === 'work') work.push(p.name);
             else personal.push(p.name);
         });
-        if (work.length) projects.work = work;
-        if (personal.length) projects.personal = personal;
+        projects.work = work;
+        projects.personal = personal;
         updateProjectsDropdown();
         renderProjects();
+        // أول مرة: زرع المشاريع الافتراضية لو فاضية
+        if (!ready && !work.length && !personal.length) seedDefaultProjects();
+        ready = true;
+    });
+}
+function seedDefaultProjects() {
+    const defaults = {
+        work: ['Bruce Group', 'WDY Media', 'DOYA'],
+        personal: ['المنزل', 'السيارة', 'العائلة', 'الأمور المالية']
+    };
+    Object.keys(defaults).forEach(type => {
+        defaults[type].forEach(name => {
+            db.collection('users').doc(currentUser.uid).collection('projects').add({
+                name, type, createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        });
     });
 }
 
@@ -500,9 +517,17 @@ function updateClock() {
     const riyadh = document.getElementById('clock-riyadh');
     if (!cairo || !riyadh) return;
     const now = new Date();
-    const opts = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true };
-    cairo.textContent = now.toLocaleTimeString('ar-EG', Object.assign({}, opts, { timeZone: 'Africa/Cairo' }));
-    riyadh.textContent = now.toLocaleTimeString('ar-SA', Object.assign({}, opts, { timeZone: 'Asia/Riyadh' }));
+    function fmt(tz) {
+        const p = new Intl.DateTimeFormat('en', { timeZone: tz, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).formatToParts(now);
+        const h = +p.find(x => x.type === 'hour').value;
+        const m = p.find(x => x.type === 'minute').value;
+        const s = p.find(x => x.type === 'second').value;
+        const ampm = h >= 12 ? 'مساءاً' : 'صباحاً';
+        const h12 = h % 12 || 12;
+        return String(h12).padStart(2,'0') + ':' + m + ':' + s + ' ' + ampm;
+    }
+    cairo.textContent = fmt('Africa/Cairo');
+    riyadh.textContent = fmt('Asia/Riyadh');
 }
 
 function updateProgress() {

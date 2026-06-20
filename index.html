@@ -52,21 +52,22 @@
             </div>
             <div class="top-bar-actions">
                 <button class="icon-btn" onclick="toggleTheme()" id="theme-toggle" aria-label="الوضع الليلي">🌙</button>
-                <button class="icon-btn" id="notification-bell" onclick="showNotificationPanel()" aria-label="الإشعارات">
-                    🔔
-                    <span id="notif-badge" class="badge" style="display:none">0</span>
-                </button>
-                <button class="icon-btn" onclick="signOut()" aria-label="تسجيل الخروج">🚪</button>
-                <!-- لوحة الإشعارات المنسدلة -->
-                <div class="notif-panel" id="notif-panel">
-                    <div class="notif-header">
-                        <h4>الإشعارات</h4>
-                        <button class="icon-btn" onclick="closeNotificationPanel()">✕</button>
-                    </div>
-                    <div class="notif-list" id="notif-list">
-                        <p class="empty-msg">لا توجد إشعارات</p>
+                <div class="notif-wrapper">
+                    <button class="icon-btn" id="notification-bell" onclick="showNotificationPanel()" aria-label="الإشعارات">
+                        🔔
+                        <span id="notif-badge" class="badge" style="display:none">0</span>
+                    </button>
+                    <div class="notif-panel" id="notif-panel">
+                        <div class="notif-header">
+                            <h4>الإشعارات</h4>
+                            <button class="icon-btn" onclick="closeNotificationPanel()">✕</button>
+                        </div>
+                        <div class="notif-list" id="notif-list">
+                            <p class="empty-msg">لا توجد إشعارات</p>
+                        </div>
                     </div>
                 </div>
+                <button class="icon-btn" onclick="signOut()" aria-label="تسجيل الخروج">🚪</button>
             </div>
         </header>
 
