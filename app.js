@@ -480,7 +480,9 @@ const QUOTES = [
 function renderHome() {
     const today = todayStr();
     const now = new Date();
-    const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    const dayName = now.toLocaleDateString('ar-SA', { weekday: 'long' });
+    const monthName = now.toLocaleDateString('ar-SA', { month: 'long' });
+    const dateStr = dayName + '، ' + now.getDate() + ' ' + monthName + ' ' + now.getFullYear();
     document.getElementById('home-date').textContent = dateStr;
 
     // اقتباس تحفيزي عشوائي
