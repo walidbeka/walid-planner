@@ -18,11 +18,8 @@ let confirmCallback = null;
 const MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
 
 // ==================== Firebase ====================
-let gmailAccessToken = null;
-
 function signInWithGoogle() {
     const provider = new firebase.auth.GoogleAuthProvider();
-    provider.addScope('https://www.googleapis.com/auth/gmail.send');
     provider.setCustomParameters({ prompt: 'select_account' });
     firebase.auth().signInWithPopup(provider)
         .then(result => {
@@ -38,7 +35,6 @@ function signInWithGoogle() {
                 localStorage.setItem('wp_allowed_email', email);
             }
             currentUser = result.user;
-            gmailAccessToken = result.credential.accessToken;
             errorEl.textContent = '';
             initApp();
         })
@@ -973,58 +969,24 @@ function sendDailyReminder() {
     sendEmail('📋 Walid Planner - تذكير يومي', body, email);
 }
 
-// ==================== البريد الإلكتروني (Gmail API) ====================
-// خطوات التفعيل:
-// 1. افتح https://console.cloud.google.com/apis/library/gmail.googleapis.com
-// 2. اختر مشروع: Walid Planner (walid-planner)
-// 3. اضغط Enable
-// 4. بعدها الإيميل هينبعت تلقائي من Gmail بتاعك
-
-function actuallySendEmail(subject, body, toEmail, token) {
-    const emailContent = [
-        'From: "Walid Planner" <' + toEmail + '>',
-        'To: ' + toEmail,
-        'Subject: =?UTF-8?B?' + btoa(unescape(encodeURIComponent(subject))) + '?=',
-        'Content-Type: text/plain; charset=UTF-8',
-        '',
-        body
-    ].join('\r\n');
-    const encoded = btoa(unescape(encodeURIComponent(emailContent)))
-        .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-
-    fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
-        method: 'POST',
-        headers: {
-            'Authorization': 'Bearer ' + token,
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ raw: encoded })
-    }).then(r => {
-        if (r.ok) { showToast('📨 تم إرسال البريد بنجاح', 'success'); }
-        else { return r.json().then(e => { throw new Error(e.error.message); }); }
-    }).catch(err => {
-        console.error('Gmail API error:', err);
-        showToast('❌ فشل الإرسال: ' + err.message, 'error');
-    });
-}
+// ==================== البريد الإلكتروني ====================
+// يستخدم FormSubmit (formsubmit.co) — مجاني, مفيش إعدادات مطلوبة
 
 function sendEmail(subject, body, toEmail) {
-    if (gmailAccessToken) {
-        actuallySendEmail(subject, body, toEmail, gmailAccessToken);
-        return;
-    }
-    // لو التوكين مش موجود (بعد Refresh)، نطلبه تاني
-    showToast('⏳ جاري طلب صلاحية الإيميل...', 'info');
-    const provider = new firebase.auth.GoogleAuthProvider();
-    provider.addScope('https://www.googleapis.com/auth/gmail.send');
-    firebase.auth().currentUser.reauthenticateWithPopup(provider)
-        .then(result => {
-            gmailAccessToken = result.credential.accessToken;
-            actuallySendEmail(subject, body, toEmail, gmailAccessToken);
+    fetch('https://formsubmit.co/ajax/' + encodeURIComponent(toEmail), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({
+            subject: subject,
+            message: body
         })
-        .catch(err => {
-            showToast('❌ فشل الإرسال: ' + (err.message || 'لم يتم الموافقة'), 'error');
-        });
+    }).then(r => {
+        if (r.ok) { showToast('📨 تم إرسال البريد بنجاح', 'success'); }
+        else { throw new Error('فشل الإرسال'); }
+    }).catch(err => {
+        console.error('FormSubmit error:', err);
+        showToast('❌ فشل الإرسال، تأكد من صحة البريد', 'error');
+    });
 }
 
 // ==================== الإعدادات ====================
