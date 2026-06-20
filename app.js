@@ -944,6 +944,16 @@ function testReminderEmail() {
     }
     const body = buildTasksSummary();
     sendEmail('📋 Walid Planner - اختبار الإرسال', body, email);
+    // حفظ الملخص لـ Firebase عشان الـ GitHub Action يقراه
+    if (currentUser && body.trim()) {
+        db.collection('reminders').doc(todayStr()).set({
+            body: body,
+            date: todayStr(),
+            sent: true,
+            email: email,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }).catch(err => console.warn('Reminder save error:', err));
+    }
 }
 
 function sendDailyReminder() {

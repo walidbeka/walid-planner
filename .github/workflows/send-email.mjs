@@ -53,19 +53,20 @@ async function main() {
 
     // قراءة الملخص من reminders/{todayStr}
     const docUrl = 'https://firestore.googleapis.com' + dbUrl + '/reminders/' + todayStr;
-    let summary = null;
+    let doc = null;
     try {
-      const doc = await api('GET', docUrl, token);
-      summary = doc.fields?.body?.stringValue || null;
-      console.log('Found summary:', summary ? summary.slice(0, 100) : 'empty');
+      doc = await api('GET', docUrl, token);
     } catch(e) {
-      console.log('No reminder saved yet:', e.message);
+      console.log('No reminder document yet:', e.message);
     }
 
-    if (!summary) {
-      console.log('No summary to send');
-      return;
-    }
+    if (!doc) { console.log('No reminder doc'); return; }
+    const summary = doc.fields?.body?.stringValue || null;
+    const alreadySent = doc.fields?.sent?.booleanValue === true;
+    console.log('Already sent:', alreadySent);
+
+    if (!summary) { console.log('Empty summary'); return; }
+    if (alreadySent) { console.log('Already sent, skipping'); return; }
 
     // إرسال الإيميل
     await api('POST', 'https://formsubmit.co/ajax/' + encodeURIComponent(toEmail), null,
