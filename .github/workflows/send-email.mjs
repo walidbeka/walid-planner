@@ -216,7 +216,7 @@ async function main() {
       html: html
     });
 
-    const emailRes = await api('POST', 'https://api.resend.com/emails', null, payload);
+    const emailRes = await api('POST', 'https://api.resend.com/emails', resendKey, payload);
     console.log('✅ Email sent! ID:', emailRes.id);
   } catch(e) {
     console.error('Error:', e.body?.error?.message || e.text || JSON.stringify(e).slice(0, 300));
