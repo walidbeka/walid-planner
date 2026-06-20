@@ -850,36 +850,33 @@ document.getElementById('reminder-toggle').addEventListener('change', function()
     if (this.checked) setupDailyReminder();
 });
 
+function buildTasksSummary() {
+    const today = todayStr();
+    const todayTasks = tasks.filter(t => t.date === today && t.status !== 'completed' && !t.archived);
+    const overdueTasks = tasks.filter(t => t.date < today && t.status !== 'completed' && !t.archived);
+    let body = '';
+    if (todayTasks.length) {
+        body += '📅 مهام اليوم (' + todayTasks.length + '):\n';
+        todayTasks.forEach(t => { body += '- ' + t.name + (t.project ? ' [' + t.project + ']' : '') + '\n'; });
+    }
+    if (overdueTasks.length) {
+        body += '\n🔴 مهام متأخرة (' + overdueTasks.length + '):\n';
+        overdueTasks.forEach(t => { body += '- ' + t.name + ' (تاريخها: ' + t.date + ')' + '\n'; });
+    }
+    if (!todayTasks.length && !overdueTasks.length) {
+        body = '🎉 لا توجد مهام اليوم!';
+    }
+    return body;
+}
+
 function testReminderEmail() {
     const email = document.getElementById('settings-email').value.trim();
     if (!email || !email.includes('@')) {
         showToast('❌ أدخل بريداً إلكترونياً صحيحاً أولاً', 'error');
         return;
     }
-    const today = todayStr();
-    const todayTasks = tasks.filter(t => t.date === today && t.status !== 'completed' && !t.archived);
-    const overdueTasks = tasks.filter(t => t.date < today && t.status !== 'completed' && !t.archived);
-    const highPriorityToday = tasks.filter(t => t.date === today && t.priority === 'high' && t.status !== 'completed' && !t.archived);
-
-    let body = '';
-    if (todayTasks.length) {
-        body += '📅 مهام اليوم (' + todayTasks.length + '):\n';
-        todayTasks.forEach(t => { body += '- ' + t.name + '\n'; });
-    }
-    if (overdueTasks.length) {
-        body += '\n🔴 مهام متأخرة (' + overdueTasks.length + '):\n';
-        overdueTasks.forEach(t => { body += '- ' + t.name + '\n'; });
-    }
-    if (!todayTasks.length && !overdueTasks.length) {
-        body = '🎉 لا توجد مهام اليوم!\n';
-    }
-
-    const subject = encodeURIComponent('Walid Planner - ملخص المهام');
-    const mailBody = encodeURIComponent(body);
-    const link = document.createElement('a');
-    link.href = 'mailto:' + email + '?subject=' + subject + '&body=' + mailBody;
-    link.click();
-    showToast('📨 تم فتح البريد لإرسال الاختبار', 'success');
+    const body = buildTasksSummary();
+    sendEmail('📋 Walid Planner - اختبار الإرسال', body, email);
 }
 
 function sendDailyReminder() {
@@ -887,23 +884,11 @@ function sendDailyReminder() {
     const today = todayStr();
     const todayTasks = tasks.filter(t => t.date === today && t.status !== 'completed' && !t.archived);
     const overdueTasks = tasks.filter(t => t.date < today && t.status !== 'completed' && !t.archived);
-    const highPriorityToday = tasks.filter(t => t.date === today && t.priority === 'high' && t.status !== 'completed' && !t.archived);
 
     if (todayTasks.length === 0 && overdueTasks.length === 0) return;
 
-    let body = '📋 ملخص مهام اليوم:\n\n';
-    if (todayTasks.length) {
-        body += '📅 مهام اليوم:\n';
-        todayTasks.forEach(t => { body += `- ${t.name} (${t.priority === 'high' ? '🔴' : t.priority === 'medium' ? '🟡' : '🟢'})\n`; });
-    }
-    if (overdueTasks.length) {
-        body += '\n🔴 مهام متأخرة:\n';
-        overdueTasks.forEach(t => { body += `- ${t.name} (تاريخها: ${t.date})\n`; });
-    }
-    if (highPriorityToday.length) {
-        body += '\n⚠️ أولوية عالية:\n';
-        highPriorityToday.forEach(t => { body += `- ${t.name}\n`; });
-    }
+    const body = buildTasksSummary();
+    const email = localStorage.getItem('wp_allowed_email') || currentUser.email;
 
     // إشعار متصفح
     if ('Notification' in window && Notification.permission === 'granted') {
@@ -912,6 +897,42 @@ function sendDailyReminder() {
             icon: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📋</text></svg>'
         });
     }
+
+    // إيميل تلقائي
+    sendEmail('📋 Walid Planner - تذكير يومي', body, email);
+}
+
+// ==================== البريد الإلكتروني (EmailJS) ====================
+// خطوات تفعيل الإيميل التلقائي:
+// 1. افتح https://www.emailjs.com
+// 2. اعمل حساب مجاني
+// 3. اربط بريدك (Gmail)
+// 4. روح لـ Email Services -> Service ID
+// 5. روح لـ Email Templates -> Template ID
+// 6. روح لـ Account -> API Keys -> Public Key
+// 7. غير القيم تحت
+const EMAILJS_CONFIG = {
+    serviceID: 'service_xxxxxxx',  // حط Service ID من EmailJS
+    templateID: 'template_xxxxxx', // حط Template ID من EmailJS
+    publicKey: 'YOUR_PUBLIC_KEY'   // حط Public Key من EmailJS
+};
+
+function sendEmail(subject, body, toEmail) {
+    if (EMAILJS_CONFIG.publicKey === 'YOUR_PUBLIC_KEY') {
+        showToast('❌ لازم تضبط EmailJS أولاً - راجع الإعدادات', 'error');
+        console.log('📧 Email would be sent:', { to: toEmail, subject, body });
+        return;
+    }
+    emailjs.send(EMAILJS_CONFIG.serviceID, EMAILJS_CONFIG.templateID, {
+        to_email: toEmail,
+        subject: subject,
+        message: body
+    }).then(() => {
+        showToast('📨 تم إرسال البريد بنجاح', 'success');
+    }).catch(err => {
+        console.error('EmailJS error:', err);
+        showToast('❌ فشل الإرسال: ' + err.text, 'error');
+    });
 }
 
 // ==================== الإعدادات ====================
