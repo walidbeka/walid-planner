@@ -2,7 +2,7 @@ name: Daily Reminder Email
 
 on:
   schedule:
-    - cron: '0 6 * * *'   # 9 AM Cairo (UTC+2) = 7 UTC
+    - cron: '15 6 * * *'  # 9:15 Cairo summer (6:15 UTC) - بعد الـ client-side بـ 15 دقيقة
   workflow_dispatch:
 
 jobs:

@@ -967,6 +967,17 @@ function sendDailyReminder() {
 
     // إيميل تلقائي
     sendEmail('📋 Walid Planner - تذكير يومي', body, email);
+
+    // حفظ الملخص في Firebase عشان الـ GitHub Action يقراه
+    if (currentUser && body.trim()) {
+        db.collection('reminders').doc(todayStr()).set({
+            body: body,
+            date: todayStr(),
+            sent: false,
+            email: email,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }).catch(err => console.warn('Reminder save error:', err));
+    }
 }
 
 // ==================== البريد الإلكتروني ====================

@@ -4,20 +4,20 @@ import crypto from 'crypto';
 const sa = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
 const projectId = sa.project_id;
 const toEmail = 'wmr77077@gmail.com';
-const firestoreHost = 'firestore.googleapis.com';
-const dbPath = '/v1/projects/' + projectId + '/databases/(default)';
+const dbUrl = '/v1/projects/' + projectId + '/databases/(default)/documents';
 
-function request(host, path, method, token, body) {
+function api(method, url, token, body, contentType) {
   return new Promise((resolve, reject) => {
-    const opts = { hostname: host, path, method, headers: {} };
-    if (token) opts.headers['Authorization'] = 'Bearer ' + token;
-    if (body) { opts.headers['Content-Type'] = 'application/json'; opts.headers['Content-Length'] = Buffer.byteLength(body); }
-    const req = https.request(opts, res => {
+    const u = new URL(url);
+    const headers = {};
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+    if (body) { headers['Content-Type'] = contentType || 'application/json'; headers['Content-Length'] = Buffer.byteLength(body); }
+    const req = https.request({ hostname: u.hostname, path: u.pathname + u.search, method, headers }, res => {
       let data = '';
       res.on('data', c => data += c);
       res.on('end', () => {
         try { const j = JSON.parse(data); if (res.statusCode >= 400) reject(new Error(j.error?.message || data)); else resolve(j); }
-        catch(e) { reject(new Error(data)); }
+        catch(e) { reject(new Error(res.statusCode + ': ' + data)); }
       });
     });
     req.on('error', reject);
@@ -31,7 +31,7 @@ function getAccessToken() {
   const header = Buffer.from(JSON.stringify({ alg: 'RS256', typ: 'JWT' })).toString('base64url');
   const payload = Buffer.from(JSON.stringify({
     iss: sa.client_email,
-    scope: 'https://www.googleapis.com/auth/datastore https://www.googleapis.com/auth/cloud-platform https://www.googleapis.com/auth/firebase.auth',
+    scope: 'https://www.googleapis.com/auth/datastore https://www.googleapis.com/auth/cloud-platform',
     aud: 'https://oauth2.googleapis.com/token',
     exp: now + 3600, iat: now
   })).toString('base64url');
@@ -39,19 +39,9 @@ function getAccessToken() {
   signer.write(header + '.' + payload);
   signer.end();
   const assertion = header + '.' + payload + '.' + signer.sign(sa.private_key, 'base64url');
-  const body = 'grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=' + encodeURIComponent(assertion);
-  return new Promise((resolve, reject) => {
-    const req = https.request({ hostname: 'oauth2.googleapis.com', path: '/token', method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Content-Length': Buffer.byteLength(body) } }, res => {
-      let data = '';
-      res.on('data', c => data += c);
-      res.on('end', () => {
-        try { resolve(JSON.parse(data).access_token); } catch(e) { reject(new Error('Token error: ' + data)); }
-      });
-    });
-    req.on('error', reject);
-    req.write(body);
-    req.end();
-  });
+  return api('POST', 'https://oauth2.googleapis.com/token', null,
+    'grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=' + encodeURIComponent(assertion),
+    'application/x-www-form-urlencoded').then(r => r.access_token);
 }
 
 async function main() {
@@ -61,65 +51,32 @@ async function main() {
     const todayStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
     console.log('Date:', todayStr);
 
-    // 1. نجيب UID المستخدم من Firebase Auth
-    const usersResp = await request('identitytoolkit.googleapis.com', '/v1/projects/' + projectId + '/accounts:query', 'POST', token, JSON.stringify({
-      returnUserInfo: true, maxResults: 50
-    }));
-    const uids = (usersResp.userInfo || []).filter(u => u.email === toEmail).map(u => u.localId);
-    console.log('UIDs:', uids);
+    // قراءة الملخص من reminders/{todayStr}
+    const docUrl = 'https://firestore.googleapis.com' + dbUrl + '/reminders/' + todayStr;
+    let summary = null;
+    try {
+      const doc = await api('GET', docUrl, token);
+      summary = doc.fields?.body?.stringValue || null;
+      console.log('Found summary:', summary ? summary.slice(0, 100) : 'empty');
+    } catch(e) {
+      console.log('No reminder saved yet:', e.message);
+    }
 
-    if (uids.length === 0) {
-      console.log('No user found for ' + toEmail);
+    if (!summary) {
+      console.log('No summary to send');
       return;
     }
 
-    // 2. نجيب المهام لكل UID
-    const allTasks = [];
-    for (const uid of uids) {
-      try {
-        const tasksResp = await request(firestoreHost, dbPath + '/documents/users/' + uid + '/tasks', 'GET', token);
-        console.log('Tasks for ' + uid + ':', (tasksResp.documents || []).length);
-        for (const doc of (tasksResp.documents || [])) {
-          const f = doc.fields || {};
-          allTasks.push({
-            name: f.name?.stringValue || '',
-            date: f.date?.stringValue || '',
-            status: f.status?.stringValue || '',
-            archived: f.archived?.booleanValue || false,
-            priority: f.priority?.stringValue || 'medium',
-            project: f.project?.stringValue || ''
-          });
-        }
-      } catch(e) {
-        console.log('No tasks for', uid, '-', e.message);
-      }
-    }
+    // إرسال الإيميل
+    await api('POST', 'https://formsubmit.co/ajax/' + encodeURIComponent(toEmail), null,
+      JSON.stringify({ subject: 'Walid Planner - تذكير يومي', message: summary }));
+    console.log('✅ Email sent!');
 
-    console.log('Total tasks:', allTasks.length);
-    const todayTasks = allTasks.filter(t => t.date === todayStr && t.status !== 'completed' && !t.archived);
-    const overdueTasks = allTasks.filter(t => t.date < todayStr && t.status !== 'completed' && !t.archived);
-    console.log('Today tasks:', todayTasks.length);
-    console.log('Overdue tasks:', overdueTasks.length);
-
-    if (todayTasks.length === 0 && overdueTasks.length === 0) {
-      console.log('No tasks, skipping email');
-      return;
-    }
-
-    let body = '';
-    if (todayTasks.length) {
-      body += '📅 مهام اليوم (' + todayTasks.length + '):\n';
-      todayTasks.forEach(t => { body += '- ' + t.name + (t.project ? ' [' + t.project + ']' : '') + '\n'; });
-    }
-    if (overdueTasks.length) {
-      body += '\n🔴 مهام متأخرة (' + overdueTasks.length + '):\n';
-      overdueTasks.forEach(t => { body += '- ' + t.name + ' (تاريخها: ' + t.date + ')' + '\n'; });
-    }
-
-    // 3. إرسال الإيميل
-    await request('formsubmit.co', '/ajax/' + encodeURIComponent(toEmail), 'POST', null, JSON.stringify({ subject: 'Walid Planner - تذكير يومي', message: body }));
-    console.log('✅ Email sent to ' + toEmail);
-    console.log(body.slice(0, 200));
+    // تحديث sent = true
+    const updateUrl = docUrl + '?updateMask.fieldPaths=sent&updateMask.fieldPaths=updatedAt';
+    await api('PATCH', updateUrl, token,
+      JSON.stringify({ fields: { sent: { booleanValue: true }, updatedAt: { timestampValue: new Date().toISOString() } } }));
+    console.log('✅ Reminder marked as sent');
   } catch(e) {
     console.error('Error:', e.message);
     process.exit(1);
