@@ -928,12 +928,35 @@ function buildTasksSummary() {
     const overdueTasks = tasks.filter(t => t.date < today && t.status !== 'completed' && !t.archived);
     let body = '';
     if (todayTasks.length) {
-        body += '📅 مهام اليوم (' + todayTasks.length + '):\n';
-        todayTasks.forEach(t => { body += '- ' + t.name + (t.project ? ' [' + t.project + ']' : '') + '\n'; });
+        body += '═══════════════════════════════════\n';
+        body += '📅 مهام اليوم (' + todayTasks.length + ')\n';
+        body += '═══════════════════════════════════\n\n';
+        todayTasks.forEach((t, i) => {
+            const p = t.priority === 'high' ? '🔴 عالية' : t.priority === 'low' ? '🟢 منخفضة' : '🟡 متوسطة';
+            const type = t.type === 'personal' ? '👤 شخصي' : '💼 عمل';
+            body += (i + 1) + '. ' + t.name + '\n';
+            body += '   ├ الأولوية: ' + p + '\n';
+            body += '   ├ النوع: ' + type + '\n';
+            if (t.project) body += '   ├ المشروع: ' + t.project + '\n';
+            if (t.time) body += '   └ الوقت: ' + t.time + '\n';
+            else body += '   └───────────\n';
+            if (i < todayTasks.length - 1) body += '\n';
+        });
     }
     if (overdueTasks.length) {
-        body += '\n🔴 مهام متأخرة (' + overdueTasks.length + '):\n';
-        overdueTasks.forEach(t => { body += '- ' + t.name + ' (تاريخها: ' + t.date + ')' + '\n'; });
+        if (todayTasks.length) body += '\n';
+        body += '═══════════════════════════════════\n';
+        body += '🔴 مهام متأخرة (' + overdueTasks.length + ')\n';
+        body += '═══════════════════════════════════\n\n';
+        overdueTasks.forEach((t, i) => {
+            const p = t.priority === 'high' ? '🔴 عالية' : t.priority === 'low' ? '🟢 منخفضة' : '🟡 متوسطة';
+            body += (i + 1) + '. ' + t.name + '\n';
+            body += '   ├ الأولوية: ' + p + '\n';
+            body += '   ├ الموعد: ' + t.date + '\n';
+            if (t.project) body += '   └ المشروع: ' + t.project + '\n';
+            else body += '   └───────────\n';
+            if (i < overdueTasks.length - 1) body += '\n';
+        });
     }
     if (!todayTasks.length && !overdueTasks.length) {
         body = '🎉 لا توجد مهام اليوم!';

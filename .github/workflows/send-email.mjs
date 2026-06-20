@@ -4,6 +4,7 @@ import crypto from 'crypto';
 const sa = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
 const projectId = sa.project_id;
 const toEmail = 'wmr77077@gmail.com';
+const resendKey = process.env.RESEND_API_KEY;
 const fb = 'https://firestore.googleapis.com/v1/projects/' + projectId + '/databases/(default)';
 
 function api(method, url, token, body, ct) {
@@ -42,6 +43,117 @@ function getToken() {
     'application/x-www-form-urlencoded').then(r => r.access_token);
 }
 
+function priorityLabel(p) {
+  const m = { high: 'عالية', medium: 'متوسطة', low: 'منخفضة' };
+  return m[p] || p;
+}
+function priorityColor(p) {
+  const m = { high: '#ef4444', medium: '#f59e0b', low: '#22c55e' };
+  return m[p] || '#888';
+}
+function typeLabel(t) {
+  const m = { work: 'عمل', personal: 'شخصي' };
+  return m[t] || t;
+}
+function statusLabel(s) {
+  const m = { new: 'جديدة', 'in-progress': 'قيد التنفيذ' };
+  return m[s] || s;
+}
+
+function buildHtml(todayTasks, overdueTasks) {
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+  let todayRows = '';
+  if (todayTasks.length) {
+    todayTasks.forEach((t, i) => {
+      todayRows += `
+        <tr>
+          <td style="padding:12px 16px;border-bottom:1px solid #f0f0f0;font-size:15px;color:#333;">${i + 1}</td>
+          <td style="padding:12px 16px;border-bottom:1px solid #f0f0f0;font-size:15px;color:#333;font-weight:600;">${t.name}</td>
+          <td style="padding:12px 16px;border-bottom:1px solid #f0f0f0;font-size:13px;">
+            <span style="background:${priorityColor(t.priority)}22;color:${priorityColor(t.priority)};padding:3px 10px;border-radius:20px;font-weight:600;">${priorityLabel(t.priority)}</span>
+          </td>
+          <td style="padding:12px 16px;border-bottom:1px solid #f0f0f0;font-size:13px;">
+            <span style="background:#6366f122;color:#6366f1;padding:3px 10px;border-radius:20px;">${typeLabel(t.type)}</span>
+          </td>
+          <td style="padding:12px 16px;border-bottom:1px solid #f0f0f0;font-size:13px;color:#666;">${t.project || '—'}</td>
+          <td style="padding:12px 16px;border-bottom:1px solid #f0f0f0;font-size:13px;color:#666;">${t.time || '—'}</td>
+        </tr>`;
+    });
+  }
+
+  let overdueRows = '';
+  if (overdueTasks.length) {
+    overdueTasks.forEach((t, i) => {
+      overdueRows += `
+        <tr>
+          <td style="padding:12px 16px;border-bottom:1px solid #f0f0f0;font-size:15px;color:#333;">${i + 1}</td>
+          <td style="padding:12px 16px;border-bottom:1px solid #f0f0f0;font-size:15px;color:#333;font-weight:600;">${t.name}</td>
+          <td style="padding:12px 16px;border-bottom:1px solid #f0f0f0;font-size:13px;">
+            <span style="background:${priorityColor(t.priority)}22;color:${priorityColor(t.priority)};padding:3px 10px;border-radius:20px;font-weight:600;">${priorityLabel(t.priority)}</span>
+          </td>
+          <td style="padding:12px 16px;border-bottom:1px solid #f0f0f0;font-size:13px;color:#dc2626;font-weight:600;">${t.date}</td>
+          <td style="padding:12px 16px;border-bottom:1px solid #f0f0f0;font-size:13px;color:#666;">${t.project || '—'}</td>
+        </tr>`;
+    });
+  }
+
+  return `<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#f4f5f7;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+<div style="max-width:680px;margin:0 auto;padding:24px;">
+
+  <div style="background:linear-gradient(135deg,#1a1a2e,#16213e);border-radius:16px 16px 0 0;padding:32px 24px;text-align:center;">
+    <div style="font-size:36px;margin-bottom:8px;">📋</div>
+    <h1 style="color:#fff;margin:0;font-size:22px;">Walid Planner — تذكير يومي</h1>
+    <p style="color:#a0aec0;margin:8px 0 0;font-size:14px;">${dateStr}</p>
+  </div>
+
+  ${todayTasks.length ? `
+  <div style="background:#fff;padding:24px;border-bottom:1px solid #eee;">
+    <h2 style="margin:0 0 16px;font-size:18px;color:#1a1a2e;">📅 مهام اليوم <span style="background:#3b82f6;color:#fff;padding:2px 10px;border-radius:20px;font-size:13px;">${todayTasks.length}</span></h2>
+    <table style="width:100%;border-collapse:collapse;border:1px solid #eee;border-radius:8px;overflow:hidden;">
+      <thead>
+        <tr style="background:#f8fafc;">
+          <th style="padding:10px 16px;text-align:right;font-size:12px;color:#888;font-weight:600;width:40px;">#</th>
+          <th style="padding:10px 16px;text-align:right;font-size:12px;color:#888;font-weight:600;">المهمة</th>
+          <th style="padding:10px 16px;text-align:right;font-size:12px;color:#888;font-weight:600;">الأولوية</th>
+          <th style="padding:10px 16px;text-align:right;font-size:12px;color:#888;font-weight:600;">النوع</th>
+          <th style="padding:10px 16px;text-align:right;font-size:12px;color:#888;font-weight:600;">المشروع</th>
+          <th style="padding:10px 16px;text-align:right;font-size:12px;color:#888;font-weight:600;">الوقت</th>
+        </tr>
+      </thead>
+      <tbody>${todayRows}</tbody>
+    </table>
+  </div>` : ''}
+
+  ${overdueTasks.length ? `
+  <div style="background:#fff;padding:24px;border-bottom:1px solid #eee;">
+    <h2 style="margin:0 0 16px;font-size:18px;color:#dc2626;">🔴 مهام متأخرة <span style="background:#dc2626;color:#fff;padding:2px 10px;border-radius:20px;font-size:13px;">${overdueTasks.length}</span></h2>
+    <table style="width:100%;border-collapse:collapse;border:1px solid #eee;border-radius:8px;overflow:hidden;">
+      <thead>
+        <tr style="background:#fef2f2;">
+          <th style="padding:10px 16px;text-align:right;font-size:12px;color:#888;font-weight:600;width:40px;">#</th>
+          <th style="padding:10px 16px;text-align:right;font-size:12px;color:#888;font-weight:600;">المهمة</th>
+          <th style="padding:10px 16px;text-align:right;font-size:12px;color:#888;font-weight:600;">الأولوية</th>
+          <th style="padding:10px 16px;text-align:right;font-size:12px;color:#888;font-weight:600;">الموعد</th>
+          <th style="padding:10px 16px;text-align:right;font-size:12px;color:#888;font-weight:600;">المشروع</th>
+        </tr>
+      </thead>
+      <tbody>${overdueRows}</tbody>
+    </table>
+  </div>` : ''}
+
+  <div style="background:#fff;border-radius:0 0 16px 16px;padding:20px 24px;text-align:center;border-top:1px solid #eee;">
+    <p style="margin:0;color:#888;font-size:13px;">أرسل تلقائياً من <strong>Walid Planner</strong> ⚡</p>
+  </div>
+
+</div>
+</body></html>`;
+}
+
 async function main() {
   try {
     const token = await getToken();
@@ -49,17 +161,9 @@ async function main() {
     const todayStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
     console.log('Date:', todayStr);
 
-    // Debug: نجيب كل الـ collections اللي موجودة
-    try {
-      const cols = await api('POST', fb + '/documents:listCollectionIds', token, '{"pageSize":50}');
-      console.log('Collections:', cols.collectionIds || []);
-    } catch(e) { console.log('List collections error:', e.body?.error?.message || e.text); }
-
-    // 1. نجيب المستخدمين
     let usersRes;
     try {
       usersRes = await api('GET', fb + '/documents/users', token);
-      console.log('Users response:', JSON.stringify(usersRes).slice(0, 500));
     } catch(e) {
       console.log('Error reading users:', e.body?.error?.message || e.text);
       usersRes = {};
@@ -67,17 +171,8 @@ async function main() {
     const uids = (usersRes.documents || []).map(d => d.name.split('/').pop());
     console.log('Found UIDs:', uids);
 
-    if (uids.length === 0) {
-      // Try to find tasks directly without UID - collection group
-      try {
-        const cg = await api('POST', fb + '/documents:runQuery', token,
-          JSON.stringify({ structuredQuery: { from: [{ collectionId: 'tasks', allDescendants: true }], limit: 5 } }));
-        console.log('CG query result:', JSON.stringify(cg).slice(0, 500));
-      } catch(e) { console.log('CG query error:', e.body?.error?.message || JSON.stringify(e.body).slice(0, 300)); }
-      return;
-    }
+    if (uids.length === 0) { console.log('No users found'); return; }
 
-    // 2. نجيب المهام
     const allTasks = [];
     for (const uid of uids) {
       let page = '';
@@ -90,7 +185,11 @@ async function main() {
           allTasks.push({
             name: f.name?.stringValue || '',
             date: f.date?.stringValue || '',
+            time: f.time?.stringValue || '',
             status: f.status?.stringValue || '',
+            priority: f.priority?.stringValue || 'medium',
+            type: f.type?.stringValue || 'work',
+            project: f.project?.stringValue || '',
             archived: f.archived?.booleanValue || false
           });
         }
@@ -103,15 +202,22 @@ async function main() {
 
     const todayTasks = allTasks.filter(t => t.date === todayStr && t.status !== 'completed' && !t.archived);
     const overdueTasks = allTasks.filter(t => t.date < todayStr && t.status !== 'completed' && !t.archived);
+    console.log('Today:', todayTasks.length, 'Overdue:', overdueTasks.length);
+
     if (todayTasks.length === 0 && overdueTasks.length === 0) { console.log('No pending tasks'); return; }
 
-    let body = '';
-    if (todayTasks.length) { body += '📅 مهام اليوم (' + todayTasks.length + '):\n'; todayTasks.forEach(t => { body += '- ' + t.name + '\n'; }); }
-    if (overdueTasks.length) { body += '\n🔴 مهام متأخرة (' + overdueTasks.length + '):\n'; overdueTasks.forEach(t => { body += '- ' + t.name + ' (تاريخها: ' + t.date + ')' + '\n'; }); }
+    const html = buildHtml(todayTasks, overdueTasks);
+    const subject = '📋 Walid Planner — مهام النهارده (' + todayTasks.length + ')' + (overdueTasks.length ? ' + متأخرة (' + overdueTasks.length + ')' : '');
 
-    await api('POST', 'https://formsubmit.co/ajax/' + encodeURIComponent(toEmail), null,
-      JSON.stringify({ subject: 'Walid Planner - تذكير يومي', message: body }));
-    console.log('✅ Email sent!');
+    const payload = JSON.stringify({
+      from: 'Walid Planner <onboarding@resend.dev>',
+      to: [toEmail],
+      subject: subject,
+      html: html
+    });
+
+    const emailRes = await api('POST', 'https://api.resend.com/emails', null, payload);
+    console.log('✅ Email sent! ID:', emailRes.id);
   } catch(e) {
     console.error('Error:', e.body?.error?.message || e.text || JSON.stringify(e).slice(0, 300));
     process.exit(1);
