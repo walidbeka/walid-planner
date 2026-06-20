@@ -873,6 +873,43 @@ document.getElementById('reminder-toggle').addEventListener('change', function()
     if (this.checked) setupDailyReminder();
 });
 
+function testReminderEmail() {
+    const email = document.getElementById('settings-email').value.trim();
+    if (!email || !email.includes('@')) {
+        showToast('❌ أدخل بريداً إلكترونياً صحيحاً أولاً', 'error');
+        return;
+    }
+    const today = todayStr();
+    const todayTasks = tasks.filter(t => t.date === today && t.status !== 'completed' && !t.archived);
+    const overdueTasks = tasks.filter(t => t.date < today && t.status !== 'completed' && !t.archived);
+    const highPriorityToday = tasks.filter(t => t.date === today && t.priority === 'high' && t.status !== 'completed' && !t.archived);
+
+    let body = '📋 Walid Planner - ملخص المهام\n';
+    body += '═══════════════════════\n\n';
+    if (todayTasks.length) {
+        body += '📅 مهام اليوم (' + todayTasks.length + '):\n';
+        todayTasks.forEach(t => { body += '• ' + t.name + ' [' + (t.priority === 'high' ? '🔴' : t.priority === 'medium' ? '🟡' : '🟢') + ']' + (t.project ? ' - ' + t.project : '') + '\n'; });
+    }
+    if (overdueTasks.length) {
+        body += '\n🔴 مهام متأخرة (' + overdueTasks.length + '):\n';
+        overdueTasks.forEach(t => { body += '• ' + t.name + ' (تاريخها: ' + t.date + ')' + '\n'; });
+    }
+    if (highPriorityToday.length) {
+        body += '\n⚠️ أولوية عالية (' + highPriorityToday.length + '):\n';
+        highPriorityToday.forEach(t => { body += '• ' + t.name + '\n'; });
+    }
+    if (!todayTasks.length && !overdueTasks.length) {
+        body += '🎉 لا توجد مهام اليوم!\n';
+    }
+    body += '\n━━━━━━━━━━━━━━━━━━━\nWalid Planner';
+
+    // فتح تطبيق البريد الافتراضي مع المحتوى
+    const subject = encodeURIComponent('📋 Walid Planner - ملخص المهام اليومية');
+    const mailBody = encodeURIComponent(body);
+    window.open('mailto:' + email + '?subject=' + subject + '&body=' + mailBody, '_blank');
+    showToast('📨 تم فتح البريد لإرسال الاختبار', 'success');
+}
+
 function sendDailyReminder() {
     if (!currentUser) return;
     const today = todayStr();
