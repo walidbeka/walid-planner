@@ -1017,7 +1017,6 @@ function sendDailyReminder() {
     if (todayTasks.length === 0 && overdueTasks.length === 0) return;
 
     const body = buildTasksSummary();
-    const email = localStorage.getItem('wp_allowed_email') || currentUser.email;
 
     // إشعار متصفح
     if ('Notification' in window && Notification.permission === 'granted') {
@@ -1027,16 +1026,12 @@ function sendDailyReminder() {
         });
     }
 
-    // إيميل تلقائي
-    sendEmail('📋 Walid Planner - تذكير يومي', body, email);
-
-    // حفظ الملخص في Firebase عشان الـ GitHub Action يقراه
+    // حفظ الملخص في Firebase عشان الـ GitHub Action يقراه ويبعت الإيميل
     if (currentUser && body.trim()) {
         db.collection('reminders').doc(todayStr()).set({
             body: body,
             date: todayStr(),
             sent: false,
-            email: email,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         }).catch(err => console.warn('Reminder save error:', err));
     }

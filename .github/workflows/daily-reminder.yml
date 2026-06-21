@@ -2,7 +2,7 @@ name: Daily Reminder Email
 
 on:
   schedule:
-    - cron: '0 6 * * *'   # 9:00 صباحاً بتوقيت مصر
+    - cron: '50 5 * * *'   # 8:50 صباحاً بتوقيت مصر (6:50 UTC)
   workflow_dispatch:
 
 jobs:
