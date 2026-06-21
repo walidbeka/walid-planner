@@ -217,11 +217,47 @@
                         <button class="chip" data-filter="overdue" onclick="filterTasks('overdue')">متأخرة</button>
                         <button class="chip" data-filter="upcoming" onclick="filterTasks('upcoming')">قادمة</button>
                         <button class="chip" data-filter="completed" onclick="filterTasks('completed')">مكتملة</button>
+                        <button class="chip" data-filter="advanced" onclick="toggleAdvancedFilter()">🔍 متقدم</button>
                     </div>
                     <div class="tasks-view-toggle">
                         <button class="icon-btn active" onclick="setTaskView('list')" id="view-list" title="عرض قائمة">📋</button>
                         <button class="icon-btn" onclick="setTaskView('kanban')" id="view-kanban" title="عرض كانبان">📊</button>
                     </div>
+                </div>
+                <div class="advanced-filter-panel" id="advanced-filter-panel" style="display:none">
+                    <div class="adv-filter-row">
+                        <div class="adv-filter-group">
+                            <label>من تاريخ</label>
+                            <input type="date" id="adv-date-from" onchange="applyAdvancedFilter()">
+                        </div>
+                        <div class="adv-filter-group">
+                            <label>إلى تاريخ</label>
+                            <input type="date" id="adv-date-to" onchange="applyAdvancedFilter()">
+                        </div>
+                        <div class="adv-filter-group">
+                            <label>المشروع</label>
+                            <select id="adv-project" onchange="applyAdvancedFilter()">
+                                <option value="">الكل</option>
+                            </select>
+                        </div>
+                        <div class="adv-filter-group">
+                            <label>الأولوية</label>
+                            <select id="adv-priority" onchange="applyAdvancedFilter()">
+                                <option value="">الكل</option>
+                                <option value="high">عالية</option>
+                                <option value="medium">متوسطة</option>
+                                <option value="low">منخفضة</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="adv-filter-row">
+                        <div class="adv-filter-group adv-filter-search">
+                            <label>اسم المهمة</label>
+                            <input type="text" id="adv-task-name" placeholder="ابحث بالاسم..." oninput="applyAdvancedFilter()">
+                        </div>
+                        <button class="btn btn-sm btn-secondary" onclick="clearAdvancedFilter()">مسح الفلتر</button>
+                    </div>
+                    <div class="adv-filter-result" id="adv-filter-result"></div>
                 </div>
                 <div class="task-search-bar">
                     <input type="text" id="task-search-input" placeholder="ابحث عن مهمة..." oninput="searchInTasks(this.value)">
@@ -455,6 +491,6 @@
     <div id="toast-container" class="toast-container"></div>
 
     <script src="firebase-config.js?v=6"></script>
-    <script src="app.js?v=15"></script>
+    <script src="app.js?v=16"></script>
 </body>
 </html>

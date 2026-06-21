@@ -415,7 +415,53 @@ function filterTasks(filter) {
     currentFilter = filter;
     document.querySelectorAll('#task-filters .chip').forEach(c => c.classList.remove('active'));
     document.querySelector(`#task-filters .chip[data-filter="${filter}"]`).classList.add('active');
+    if (filter !== 'advanced') {
+        document.getElementById('advanced-filter-panel').style.display = 'none';
+    }
     renderTasks();
+}
+
+function toggleAdvancedFilter() {
+    const panel = document.getElementById('advanced-filter-panel');
+    const isOpen = panel.style.display !== 'none';
+    panel.style.display = isOpen ? 'none' : 'block';
+    if (!isOpen) {
+        populateAdvancedFilterProjects();
+        applyAdvancedFilter();
+    }
+}
+
+function populateAdvancedFilterProjects() {
+    const sel = document.getElementById('adv-project');
+    const current = sel.value;
+    const projects = [...new Set(tasks.filter(t => t.project).map(t => t.project))];
+    sel.innerHTML = '<option value="">الكل</option>' + projects.map(p => `<option value="${p}" ${p === current ? 'selected' : ''}>${p}</option>`).join('');
+}
+
+function applyAdvancedFilter() {
+    currentFilter = 'advanced';
+    document.querySelectorAll('#task-filters .chip').forEach(c => c.classList.remove('active'));
+    document.querySelector('#task-filters .chip[data-filter="advanced"]').classList.add('active');
+    renderTasks();
+}
+
+function clearAdvancedFilter() {
+    document.getElementById('adv-date-from').value = '';
+    document.getElementById('adv-date-to').value = '';
+    document.getElementById('adv-project').value = '';
+    document.getElementById('adv-priority').value = '';
+    document.getElementById('adv-task-name').value = '';
+    applyAdvancedFilter();
+}
+
+function getAdvancedFilterValues() {
+    return {
+        dateFrom: document.getElementById('adv-date-from').value || '',
+        dateTo: document.getElementById('adv-date-to').value || '',
+        project: document.getElementById('adv-project').value || '',
+        priority: document.getElementById('adv-priority').value || '',
+        name: (document.getElementById('adv-task-name').value || '').toLowerCase().trim()
+    };
 }
 
 function setTaskView(view) {
@@ -444,6 +490,16 @@ function getFilteredTasks() {
             break;
         case 'completed':
             filtered = filtered.filter(t => t.status === 'completed');
+            break;
+        case 'advanced':
+            const f = getAdvancedFilterValues();
+            if (f.dateFrom) filtered = filtered.filter(t => t.date >= f.dateFrom);
+            if (f.dateTo) filtered = filtered.filter(t => t.date <= f.dateTo);
+            if (f.project) filtered = filtered.filter(t => t.project === f.project);
+            if (f.priority) filtered = filtered.filter(t => t.priority === f.priority);
+            if (f.name) filtered = filtered.filter(t => t.name && t.name.toLowerCase().includes(f.name));
+            const resultEl = document.getElementById('adv-filter-result');
+            if (resultEl) resultEl.textContent = filtered.length + ' مهمة نتيجة';
             break;
     }
     return filtered;

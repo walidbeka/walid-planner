@@ -374,6 +374,50 @@ body {
     box-shadow: 0 0 0 3px var(--primary-light);
 }
 
+/* === الفلتر المتقدم === */
+.advanced-filter-panel {
+    background: var(--bg-card);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    margin-bottom: 16px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border-light);
+    animation: fadeUp 0.2s ease;
+}
+.adv-filter-row {
+    display: flex; gap: 12px; align-items: flex-end;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+}
+.adv-filter-row:last-child { margin-bottom: 0; }
+.adv-filter-group {
+    display: flex; flex-direction: column; gap: 4px;
+    min-width: 140px;
+}
+.adv-filter-group label {
+    font-size: 11px; font-weight: 600; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 0.5px;
+}
+.adv-filter-group input,
+.adv-filter-group select {
+    padding: 8px 12px;
+    border: 1.5px solid var(--border); border-radius: 8px;
+    background: var(--bg-input); color: var(--text);
+    font-size: 13px; font-family: var(--font);
+    transition: var(--transition);
+}
+.adv-filter-group input:focus,
+.adv-filter-group select:focus {
+    outline: none; border-color: var(--primary);
+    box-shadow: 0 0 0 2px var(--primary-light);
+}
+.adv-filter-search { flex: 1; min-width: 200px; }
+.adv-filter-result {
+    font-size: 12px; color: var(--text-muted);
+    padding-top: 4px;
+    border-top: 1px solid var(--border-light);
+}
+
 /* === مشاريع === */
 .projects-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
 .project-tab {
