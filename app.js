@@ -628,8 +628,12 @@ function updateClock() {
 }
 
 function updateProgress() {
-    const total = tasks.filter(t => !t.archived).length;
-    const completed = tasks.filter(t => t.status === 'completed' && !t.archived).length;
+    const today = todayStr();
+    const todayTasks = tasks.filter(t => t.date === today && !t.archived);
+    const overdueTasks = tasks.filter(t => t.date < today && t.status !== 'completed' && !t.archived);
+    const activeTasks = [...todayTasks, ...overdueTasks];
+    const total = activeTasks.length;
+    const completed = activeTasks.filter(t => t.status === 'completed').length;
     const pct = total ? Math.round((completed / total) * 100) : 0;
     document.getElementById('progress-fill').style.width = pct + '%';
     document.getElementById('progress-percent').textContent = pct + '%';
