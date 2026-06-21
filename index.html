@@ -212,6 +212,7 @@
                 <div class="tasks-filter-bar">
                     <div class="filter-chips" id="task-filters">
                         <button class="chip active" data-filter="all" onclick="filterTasks('all')">الكل</button>
+                        <button class="chip" data-filter="remaining" onclick="filterTasks('remaining')">المتبقي اليوم</button>
                         <button class="chip" data-filter="today" onclick="filterTasks('today')">اليوم</button>
                         <button class="chip" data-filter="overdue" onclick="filterTasks('overdue')">متأخرة</button>
                         <button class="chip" data-filter="upcoming" onclick="filterTasks('upcoming')">قادمة</button>
@@ -454,6 +455,6 @@
     <div id="toast-container" class="toast-container"></div>
 
     <script src="firebase-config.js?v=6"></script>
-    <script src="app.js?v=14"></script>
+    <script src="app.js?v=15"></script>
 </body>
 </html>

@@ -430,6 +430,9 @@ function getFilteredTasks() {
     const now = new Date();
     const today = todayStr();
     switch (currentFilter) {
+        case 'remaining':
+            filtered = filtered.filter(t => (t.date === today || t.date < today) && t.status !== 'completed');
+            break;
         case 'today':
             filtered = filtered.filter(t => t.date === today);
             break;
