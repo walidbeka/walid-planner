@@ -522,31 +522,7 @@ let financeTransactions = [];
 let financeFilter = 'all';
 let startingBalance = 0;
 
-function loadFinanceTransactions() {
-    if (!currentUser) return;
-    // حمّل من Firebase
-    db.collection('users').doc(currentUser.uid).collection('finance').get()
-        .then(snapshot => {
-            financeTransactions = [];
-            snapshot.forEach(doc => {
-                financeTransactions.push({ id: doc.id, ...doc.data() });
-            });
-            financeTransactions.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
-            console.log('Finance loaded from Firebase:', financeTransactions.length);
-            renderFinance();
-        })
-        .catch(err => {
-            console.error('Finance load error:', err.code, err.message);
-            renderFinance();
-        });
-    // حمّل رصيد البداية
-    db.collection('users').doc(currentUser.uid).get().then(doc => {
-        if (doc.exists && doc.data().startingBalance !== undefined) {
-            startingBalance = doc.data().startingBalance || 0;
-            document.getElementById('fin-starting-balance').value = startingBalance || '';
-        }
-    }).catch(() => {});
-}
+
 
 function saveStartingBalance() {
     const val = parseFloat(document.getElementById('fin-starting-balance').value) || 0;
