@@ -553,10 +553,13 @@ function populateFinanceProjects() {
     const sel = document.getElementById('fin-project');
     if (!sel) return;
     const current = sel.value;
-    const allProjects = [
-        ...projects.filter(p => p.type === 'work').map(p => ({ name: p.name, label: '💼 ' + p.name })),
-        ...projects.filter(p => p.type === 'personal').map(p => ({ name: p.name, label: '🏠 ' + p.name }))
-    ];
+    let allProjects = [];
+    if (Array.isArray(projects)) {
+        allProjects = projects.map(p => ({ name: p.name || p, label: (p.type === 'personal' ? '🏠 ' : '💼 ') + (p.name || p) }));
+    } else if (projects.work || projects.personal) {
+        (projects.work || []).forEach(p => allProjects.push({ name: p, label: '💼 ' + p }));
+        (projects.personal || []).forEach(p => allProjects.push({ name: p, label: '🏠 ' + p }));
+    }
     sel.innerHTML = '<option value="">بدون مشروع</option>' + allProjects.map(p =>
         `<option value="${p.name}" ${p.name === current ? 'selected' : ''}>${p.label}</option>`
     ).join('');
