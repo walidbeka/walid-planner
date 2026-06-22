@@ -555,7 +555,7 @@ function saveStartingBalance() {
         .then(() => showToast('✅ تم حفظ رصيد البداية', 'success'))
         .catch(err => {
             console.error('Starting balance save error:', err);
-            showToast('❌ فشل الحفظ: تأكد من Firestore rules', 'error');
+            showToast('❌ فشل الحفظ', 'error');
         });
 }
 
@@ -576,11 +576,8 @@ function populateFinanceProjects() {
 }
 
 async function addFinanceTransaction() {
-    console.log('=== ADD FINANCE ===');
     const nameEl = document.getElementById('fin-name');
     const amountEl = document.getElementById('fin-amount');
-    console.log('name:', nameEl.value, '| amount:', amountEl.value, '| date:', document.getElementById('fin-date').value);
-
     const name = nameEl.value.trim();
     const amount = parseFloat(amountEl.value);
     const type = document.getElementById('fin-type').value;
@@ -588,33 +585,58 @@ async function addFinanceTransaction() {
     const date = document.getElementById('fin-date').value;
     const note = document.getElementById('fin-note').value.trim();
 
-    if (!name) { console.log('FAIL: no name'); showToast('ادخل اسم المعاملة', 'error'); return; }
-    if (!amount || amount <= 0) { console.log('FAIL: bad amount'); showToast('ادخل مبلغ صحيح', 'error'); return; }
-    if (!date) { console.log('FAIL: no date'); showToast('اختر التاريخ', 'error'); return; }
-    if (!currentUser) { console.log('FAIL: no user'); showToast('سجل دخول أولاً', 'error'); return; }
+    if (!name) { showToast('ادخل اسم المعاملة', 'error'); return; }
+    if (!amount || amount <= 0) { showToast('ادخل مبلغ صحيح', 'error'); return; }
+    if (!date) { showToast('اختر التاريخ', 'error'); return; }
+    if (!currentUser) { showToast('سجل دخول أولاً', 'error'); return; }
 
-    console.log('Saving to Firebase...');
+    const tx = { id: Date.now().toString(), name, amount, type, project, date, note, createdAt: new Date().toISOString() };
+
     try {
-        await db.collection('users').doc(currentUser.uid).collection('finance').add({
-            name, amount, type, project, date, note,
-            createdAt: new Date().toISOString()
-        });
-        console.log('SAVED!');
+        const userRef = db.collection('users').doc(currentUser.uid);
+        const doc = await userRef.get();
+        const existing = (doc.exists && doc.data().finance) ? doc.data().finance : [];
+        existing.unshift(tx);
+        await userRef.set({ finance: existing }, { merge: true });
+        financeTransactions = existing;
+        renderFinance();
         showToast('✅ تمت الإضافة', 'success');
         nameEl.value = '';
         amountEl.value = '';
         document.getElementById('fin-note').value = '';
     } catch(err) {
-        console.error('SAVE FAILED:', err.code, err.message);
+        console.error('Finance save error:', err.code, err.message);
         showToast('❌ فشل: ' + err.message, 'error');
     }
 }
 
+function loadFinanceTransactions() {
+    if (!currentUser) return;
+    db.collection('users').doc(currentUser.uid).get().then(doc => {
+        if (doc.exists && doc.data().finance) {
+            financeTransactions = doc.data().finance;
+        }
+        if (doc.exists && doc.data().startingBalance !== undefined) {
+            startingBalance = doc.data().startingBalance || 0;
+            document.getElementById('fin-starting-balance').value = startingBalance || '';
+        }
+        renderFinance();
+    }).catch(err => {
+        console.error('Finance load error:', err.code, err.message);
+    });
+}
+
 function deleteFinanceTransaction(id) {
     if (!confirm('حذف المعاملة؟')) return;
-    db.collection('users').doc(currentUser.uid).collection('finance').doc(id).delete()
-        .then(() => showToast('🗑️ تم الحذف', 'success'))
-        .catch(err => console.error('Delete error:', err));
+    db.collection('users').doc(currentUser.uid).get().then(doc => {
+        const existing = (doc.exists && doc.data().finance) ? doc.data().finance : [];
+        const updated = existing.filter(t => t.id !== id);
+        return db.collection('users').doc(currentUser.uid).set({ finance: updated }, { merge: true });
+    }).then(() => {
+        financeTransactions = financeTransactions.filter(t => t.id !== id);
+        renderFinance();
+        showToast('🗑️ تم الحذف', 'success');
+    }).catch(err => console.error('Delete error:', err));
 }
 
 function filterFinance(filter) {
