@@ -525,13 +525,19 @@ let startingBalance = 0;
 function loadFinanceTransactions() {
     if (!currentUser) return;
     db.collection('users').doc(currentUser.uid).collection('finance')
-        .orderBy('createdAt', 'desc')
         .onSnapshot(snapshot => {
             financeTransactions = [];
             snapshot.forEach(doc => {
                 financeTransactions.push({ id: doc.id, ...doc.data() });
             });
+            financeTransactions.sort((a, b) => {
+                const da = a.createdAt?.toDate?.() || new Date(0);
+                const db2 = b.createdAt?.toDate?.() || new Date(0);
+                return db2 - da;
+            });
             renderFinance();
+        }, err => {
+            console.error('Finance snapshot error:', err);
         });
     db.collection('users').doc(currentUser.uid).get().then(doc => {
         if (doc.exists && doc.data().startingBalance !== undefined) {
@@ -573,6 +579,7 @@ function addFinanceTransaction() {
     const date = document.getElementById('fin-date').value;
     const note = document.getElementById('fin-note').value.trim();
 
+    console.log('Adding finance:', { name, amount, type, project, date, note, uid: currentUser?.uid });
     if (!name) { showToast('ادخل اسم المعاملة', 'error'); return; }
     if (!amount || amount <= 0) { showToast('ادخل مبلغ صحيح', 'error'); return; }
     if (!date) { showToast('اختر التاريخ', 'error'); return; }
@@ -585,7 +592,10 @@ function addFinanceTransaction() {
         document.getElementById('fin-name').value = '';
         document.getElementById('fin-amount').value = '';
         document.getElementById('fin-note').value = '';
-    }).catch(() => showToast('❌ فشل الإضافة', 'error'));
+    }).catch(err => {
+        console.error('Finance add error:', err);
+        showToast('❌ فشل الإضافة: ' + err.message, 'error');
+    });
 }
 
 function deleteFinanceTransaction(id) {
