@@ -566,48 +566,34 @@ async function addFinanceTransaction() {
     if (!date) { showToast('اختر التاريخ', 'error'); return; }
     if (!currentUser) { showToast('سجل دخول أولاً', 'error'); return; }
 
-    const tx = { id: Date.now().toString(), name, amount, type, project, date, note, createdAt: new Date().toISOString() };
+    const tx = { name, amount, type, project, date, note, createdAt: new Date().toISOString() };
+    const colRef = db.collection('users').doc(currentUser.uid).collection('finance');
 
     try {
-        const userRef = db.collection('users').doc(currentUser.uid);
-        // استخدام arrayUnion للإضافة المباشرة للسيرفر بدون قراءة المصفوفة أولاً
-        await userRef.update({
-            finance: firebase.firestore.FieldValue.arrayUnion(tx)
-        });
-        
-        // تحديث الواجهة فوراً
+        const docRef = await colRef.add(tx);
+        tx.id = docRef.id;
         financeTransactions.unshift(tx);
         renderFinance();
-        showToast('✅ تمت الإضافة للسيرفر', 'success');
+        showToast('✅ تمت الإضافة', 'success');
         nameEl.value = '';
         amountEl.value = '';
         document.getElementById('fin-note').value = '';
-        console.log('Finance transaction added via arrayUnion');
+        console.log('Finance saved with doc id:', docRef.id);
     } catch(err) {
-        // إذا كان المستند غير موجود، نستخدم set
-        try {
-            await db.collection('users').doc(currentUser.uid).set({
-                finance: [tx]
-            }, { merge: true });
-            financeTransactions = [tx];
-            renderFinance();
-            showToast('✅ تمت الإضافة (إنشاء مستند)', 'success');
-        } catch(err2) {
-            alert('خطأ نهائي في الحفظ: ' + err2.message);
-            console.error('Finance save error:', err2);
-        }
+        alert('خطأ في الحفظ: ' + err.code + ' - ' + err.message);
+        console.error('Finance save error:', err);
     }
 }
 
 function loadFinanceTransactions() {
     if (!currentUser) return;
-    db.collection('users').doc(currentUser.uid).get({ source: 'server' }).then(doc => {
-        console.log('Server read - doc exists:', doc.exists, '| finance:', doc.data()?.finance?.length || 0);
-        financeTransactions = doc.exists && doc.data().finance ? doc.data().finance : [];
-        if (doc.exists && doc.data().startingBalance !== undefined) {
-            startingBalance = doc.data().startingBalance || 0;
-            document.getElementById('fin-starting-balance').value = startingBalance || '';
-        }
+    db.collection('users').doc(currentUser.uid).collection('finance')
+        .orderBy('createdAt', 'desc').get().then(snapshot => {
+        financeTransactions = [];
+        snapshot.forEach(doc => {
+            financeTransactions.push({ id: doc.id, ...doc.data() });
+        });
+        console.log('Finance loaded:', financeTransactions.length);
         renderFinance();
     }).catch(err => {
         console.error('Finance load error:', err.code, err.message);
@@ -616,11 +602,8 @@ function loadFinanceTransactions() {
 
 function deleteFinanceTransaction(id) {
     if (!confirm('حذف المعاملة؟')) return;
-    const tx = financeTransactions.find(t => t.id === id);
-    if (!tx) return;
-    db.collection('users').doc(currentUser.uid).update({
-        finance: firebase.firestore.FieldValue.arrayRemove(tx)
-    }).then(() => {
+    db.collection('users').doc(currentUser.uid).collection('finance').doc(id).delete()
+    .then(() => {
         financeTransactions = financeTransactions.filter(t => t.id !== id);
         renderFinance();
         showToast('🗑️ تم الحذف', 'success');
