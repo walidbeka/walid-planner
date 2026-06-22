@@ -68,6 +68,7 @@ function initApp() {
     loadTasks();
     setupDailyReminder();
     requestNotificationPermission();
+    startTaskTimeChecker();
 }
 
 // ==================== التنقل ====================
@@ -919,6 +920,37 @@ function requestNotificationPermission() {
     if ('Notification' in window && Notification.permission !== 'granted') {
         Notification.requestPermission();
     }
+}
+
+let notifiedTasks = new Set();
+
+function startTaskTimeChecker() {
+    checkTaskTimes();
+    setInterval(checkTaskTimes, 60000);
+}
+
+function checkTaskTimes() {
+    if (!currentUser || !('Notification' in window) || Notification.permission !== 'granted') return;
+    const now = new Date();
+    const currentHour = String(now.getHours()).padStart(2, '0');
+    const currentMin = String(now.getMinutes()).padStart(2, '0');
+    const currentTime = currentHour + ':' + currentMin;
+    const today = todayStr();
+
+    tasks.forEach(t => {
+        if (t.archived || t.status === 'completed' || !t.time || !t.date) return;
+        const notifyKey = t.id + '_' + today;
+        if (notifiedTasks.has(notifyKey)) return;
+        if (t.date === today && t.time === currentTime) {
+            notifiedTasks.add(notifyKey);
+            new Notification('لديك مهمة جديدة', {
+                body: '⏰ حان موعد مهمة',
+                icon: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔔</text></svg>',
+                tag: notifyKey,
+                requireInteraction: true
+            });
+        }
+    });
 }
 
 function checkNotifications() {
