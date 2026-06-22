@@ -17,7 +17,7 @@
     </script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-functions-compat.js">
     </script>
-    <link rel="stylesheet" href="style.css?v=4">
+    <link rel="stylesheet" href="style.css?v=5">
 </head>
 <body>
     <!-- ==================== شاشة تسجيل الدخول ==================== -->
@@ -98,6 +98,10 @@
                 <button class="nav-btn" data-page="projects" onclick="navigate('projects')">
                     <span class="nav-icon">📁</span>
                     <span>المشاريع</span>
+                </button>
+                <button class="nav-btn" data-page="events" onclick="navigate('events')">
+                    <span class="nav-icon">🎉</span>
+                    <span>الأعياد والمناسبات</span>
                 </button>
                 <button class="nav-btn" data-page="search" onclick="navigate('search')">
                     <span class="nav-icon">🔍</span>
@@ -315,6 +319,19 @@
                 </div>
             </section>
 
+            <!-- ======== صفحة الأعياد والمناسبات ======== -->
+            <section id="page-events" class="page">
+                <div class="page-header">
+                    <h1>🎉 الأعياد والمناسبات</h1>
+                </div>
+                <div class="events-filters">
+                    <button class="chip active" data-ecountry="all" onclick="filterEvents('all')">🌍 الكل</button>
+                    <button class="chip" data-ecountry="egypt" onclick="filterEvents('egypt')">🇪🇬 مصر</button>
+                    <button class="chip" data-ecountry="ksa" onclick="filterEvents('ksa')">🇸🇦 السعودية</button>
+                </div>
+                <div id="events-next" class="events-next-box"></div>
+                <div id="events-list" class="events-list"></div>
+            </section>
 
             <!-- ======== صفحة البحث ======== -->
             <section id="page-search" class="page">
@@ -492,6 +509,6 @@
     <div id="toast-container" class="toast-container"></div>
 
     <script src="firebase-config.js?v=7"></script>
-    <script src="app.js?v=35"></script>
+    <script src="app.js?v=36"></script>
 </body>
 </html>

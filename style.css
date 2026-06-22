@@ -587,6 +587,44 @@ body {
 .notif-item.notif-reminder { border-right-color: var(--warning); }
 .notif-item .notif-time { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
 
+/* === الأعياد والمناسبات === */
+.events-filters { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+.events-next-box {
+    background: linear-gradient(135deg, var(--primary), #8b5cf6);
+    color: #fff; border-radius: var(--radius); padding: 20px;
+    margin-bottom: 16px; display: none;
+}
+.events-next-box.visible { display: block; }
+.events-next-label { font-size: 12px; opacity: 0.85; margin-bottom: 6px; }
+.events-next-name { font-size: 20px; font-weight: 800; margin-bottom: 4px; }
+.events-next-date { font-size: 13px; opacity: 0.9; }
+.events-next-countdown { font-size: 14px; margin-top: 8px; background: rgba(255,255,255,0.2); display: inline-block; padding: 4px 12px; border-radius: 20px; font-weight: 600; }
+.events-list { display: flex; flex-direction: column; gap: 8px; }
+.event-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 16px; border-radius: var(--radius-sm);
+    background: var(--bg-card); border: 1px solid var(--border-light);
+    box-shadow: var(--shadow); transition: var(--transition);
+}
+.event-item:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); }
+.event-item.past { opacity: 0.5; }
+.event-item.today { border-right: 3px solid var(--primary); background: var(--primary-light); }
+.event-item.upcoming { border-right: 3px solid var(--success); }
+.event-flag { font-size: 28px; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border-radius: 10px; flex-shrink: 0; }
+.event-flag.egypt { background: #ffe5e5; }
+.event-flag.ksa { background: #e5faf0; }
+.event-info { flex: 1; min-width: 0; }
+.event-name { font-size: 14px; font-weight: 600; color: var(--text); }
+.event-date { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.event-countdown { font-size: 12px; font-weight: 600; flex-shrink: 0; padding: 4px 10px; border-radius: 16px; }
+.event-countdown.past { background: #f0f0f0; color: #999; }
+.event-countdown.today { background: var(--primary); color: #fff; }
+.event-countdown.soon { background: #dcfce7; color: #16a34a; }
+.event-countdown.later { background: #ede9ff; color: #7c3aed; }
+.event-country-tag { font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 4px; flex-shrink: 0; }
+.event-country-tag.egypt { background: #ffe5e5; color: #dc2626; }
+.event-country-tag.ksa { background: #e5faf0; color: #16a34a; }
+
 /* === Toast === */
 .toast-container {
     position: fixed; bottom: 90px; right: 16px; z-index: 999;

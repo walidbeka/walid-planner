@@ -84,6 +84,7 @@ function navigate(page, params) {
     if (page === 'tasks') { renderTasks(); if (params && params.filter) filterTasks(params.filter); }
     if (page === 'calendar') renderCalendar();
     if (page === 'projects') renderProjects();
+    if (page === 'events') renderEvents();
     if (page === 'search') document.getElementById('global-search-input').focus();
     if (page === 'archive') renderArchive();
     if (page === 'settings') { document.getElementById('theme-toggle-setting').checked = localStorage.getItem('wp_theme') === 'dark'; }
@@ -527,6 +528,106 @@ function globalSearch(query) {
     );
     if (!results.length) { resultsEl.innerHTML = '<p class="empty-msg">لا توجد نتائج</p>'; return; }
     resultsEl.innerHTML = results.map(t => createTaskHTML(t)).join('');
+}
+
+// ==================== الأعياد والمناسبات ====================
+let eventsCountryFilter = 'all';
+
+const holidaysData = [
+    { date: '2026-06-16', name: 'رأس السنة الهجرية', nameAr: '1 محرم 1448هـ', country: 'ksa', emoji: '🌙' },
+    { date: '2026-06-16', name: 'رأس السنة الهجرية', nameAr: '1448 هـ', country: 'egypt', emoji: '🌙' },
+    { date: '2026-06-23', name: 'ذكرى ثورة 30 يونيو', nameAr: '', country: 'egypt', emoji: '🇪🇬' },
+    { date: '2026-06-25', name: 'يوم عرفة', nameAr: '10 محرم 1448هـ', country: 'ksa', emoji: '🕋' },
+    { date: '2026-07-23', name: 'عيد ثورة 23 يوليو', nameAr: '', country: 'egypt', emoji: '🇪🇬' },
+    { date: '2026-08-27', name: 'المولد النبوي الشرقي', nameAr: '12 ربيع الأول', country: 'ksa', emoji: '🕌' },
+    { date: '2026-08-31', name: 'بدء الدراسة', nameAr: 'موسم العودة للمدارس', country: 'ksa', emoji: '📚' },
+    { date: '2026-09-06', name: 'بدء الدراسة في المدارس الحكومية', nameAr: '', country: 'egypt', emoji: '📚' },
+    { date: '2026-09-12', name: 'بدء الدراسة بالمدارس الحكومية والخاصة الرسمية', nameAr: '', country: 'egypt', emoji: '📚' },
+    { date: '2026-09-19', name: 'بدء الدراسة بالجمعيات والمعاهد الخاصة', nameAr: '', country: 'egypt', emoji: '📚' },
+    { date: '2026-09-23', name: 'اليوم الوطني السعودي', nameAr: 'الـ96', country: 'ksa', emoji: '🇸🇦' },
+    { date: '2026-10-06', name: 'عيد القوات المسلحة', nameAr: 'ثورة أكتوبر', country: 'egypt', emoji: '🎖️' },
+    { date: '2026-10-31', name: 'الهلالوين', nameAr: '', country: 'ksa', emoji: '⚽' },
+    { date: '2026-11-11', name: 'يوم العروض', nameAr: '11.11', country: 'ksa', emoji: '🛍️' },
+    { date: '2026-11-11', name: 'يوم العروض', nameAr: '11/11', country: 'egypt', emoji: '🛍️' },
+    { date: '2026-11-27', name: 'الجمعة البيضاء', nameAr: '', country: 'ksa', emoji: '🛒' },
+    { date: '2026-11-27', name: 'الجمعة البيضاء', nameAr: '', country: 'egypt', emoji: '🛒' },
+    { date: '2026-12-18', name: 'اليوم العالمي للغة العربية', nameAr: '', country: 'ksa', emoji: '📖' },
+    { date: '2026-12-31', name: 'إجازة منتصف العام الدراسي', nameAr: '', country: 'ksa', emoji: '🏫' },
+    { date: '2027-01-01', name: 'رأس السنة الميلادية', nameAr: '', country: 'ksa', emoji: '🎆' },
+    { date: '2027-01-07', name: 'عيد الميلاد المجيد', nameAr: '', country: 'egypt', emoji: '🎄' },
+    { date: '2027-01-23', name: 'إجازة نصف العام الدراسي', nameAr: 'المدارس والجامعات', country: 'egypt', emoji: '🏫' },
+    { date: '2027-01-25', name: 'عيد الثورة وعيد الشرطة', nameAr: '', country: 'egypt', emoji: '🇪🇬' },
+    { date: '2027-02-06', name: 'بدء الفصل الدراسي الثاني', nameAr: '', country: 'egypt', emoji: '📚' },
+    { date: '2027-02-07', name: 'بداية شهر رمضان المبارك', nameAr: '1448هـ', country: 'ksa', emoji: '🌙' },
+    { date: '2027-02-07', name: 'أول أيام شهر رمضان المبارك', nameAr: '1448هـ', country: 'egypt', emoji: '🌙' },
+    { date: '2027-02-22', name: 'يوم التأسيس السعودي', nameAr: '', country: 'ksa', emoji: '🏛️' },
+    { date: '2027-03-11', name: 'العيد الوطني السعودي', nameAr: '', country: 'ksa', emoji: '🎉' },
+];
+
+function filterEvents(country) {
+    eventsCountryFilter = country;
+    document.querySelectorAll('[data-ecountry]').forEach(c => c.classList.remove('active'));
+    document.querySelector(`[data-ecountry="${country}"]`).classList.add('active');
+    renderEvents();
+}
+
+function renderEvents() {
+    const today = new Date().toISOString().slice(0, 10);
+    let filtered = holidaysData;
+    if (eventsCountryFilter !== 'all') filtered = filtered.filter(e => e.country === eventsCountryFilter);
+    filtered.sort((a, b) => a.date.localeCompare(b.date));
+
+    const nextBox = document.getElementById('events-next');
+    const upcoming = filtered.find(e => e.date >= today);
+    if (upcoming) {
+        const diff = Math.ceil((new Date(upcoming.date) - new Date(today)) / 86400000);
+        const countryLabel = upcoming.country === 'ksa' ? '🇸🇦 السعودية' : '🇪🇬 مصر';
+        nextBox.innerHTML = `
+            <div class="events-next-label">الحدث القادم</div>
+            <div class="events-next-name">${upcoming.emoji} ${upcoming.name}</div>
+            <div class="events-next-date">${formatEventDate(upcoming.date)} — ${countryLabel}</div>
+            <div class="events-next-countdown">${diff === 0 ? 'اليوم!' : diff === 1 ? 'بكرة!' : 'بعد ' + diff + ' يوم'}</div>
+        `;
+        nextBox.classList.add('visible');
+    } else {
+        nextBox.classList.remove('visible');
+    }
+
+    const listEl = document.getElementById('events-list');
+    if (!filtered.length) {
+        listEl.innerHTML = '<p class="empty-msg">لا توجد مناسبات</p>';
+        return;
+    }
+
+    listEl.innerHTML = filtered.map(e => {
+        const diff = Math.ceil((new Date(e.date) - new Date(today)) / 86400000);
+        let statusClass = 'later';
+        let countdownText = 'بعد ' + diff + ' يوم';
+        if (diff < 0) { statusClass = 'past'; countdownText = 'مر'; }
+        else if (diff === 0) { statusClass = 'today'; countdownText = 'اليوم!'; }
+        else if (diff <= 14) { statusClass = 'soon'; countdownText = diff === 1 ? 'بكرة!' : 'بعد ' + diff + ' يوم'; }
+
+        const itemClass = diff < 0 ? 'past' : diff === 0 ? 'today' : 'upcoming';
+        const flagClass = e.country === 'ksa' ? 'ksa' : 'egypt';
+        const countryTag = e.country === 'ksa' ? '🇸🇦 السعودية' : '🇪🇬 مصر';
+
+        return `<div class="event-item ${itemClass}">
+            <div class="event-flag ${flagClass}">${e.emoji}</div>
+            <div class="event-info">
+                <div class="event-name">${e.name}</div>
+                <div class="event-date">${formatEventDate(e.date)}${e.nameAr ? ' — ' + e.nameAr : ''}</div>
+            </div>
+            <span class="event-country-tag ${flagClass}">${countryTag}</span>
+            <span class="event-countdown ${statusClass}">${countdownText}</span>
+        </div>`;
+    }).join('');
+}
+
+function formatEventDate(dateStr) {
+    const d = new Date(dateStr + 'T00:00:00');
+    const days = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+    const months = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+    return days[d.getDay()] + ' ' + d.getDate() + ' ' + months[d.getMonth()] + ' ' + d.getFullYear();
 }
 
 // ==================== العرض — المهام ====================
