@@ -563,26 +563,6 @@ const holidaysData = [
     { date: '2027-02-07', name: 'أول أيام شهر رمضان المبارك', nameAr: '1448هـ', country: 'egypt', emoji: '🌙' },
     { date: '2027-02-22', name: 'يوم التأسيس السعودي', nameAr: '', country: 'ksa', emoji: '🏛️' },
     { date: '2027-03-11', name: 'يوم العلم السعودي', nameAr: '', country: 'ksa', emoji: '🎓' },
-    // الرواتب - السعودية (27 من كل شهر)
-    { date: '2026-07-27', name: 'صرف الرواتب الحكومية', nameAr: 'السعودية', country: 'ksa', emoji: '💰', recurring: true },
-    { date: '2026-08-27', name: 'صرف الرواتب الحكومية', nameAr: 'السعودية', country: 'ksa', emoji: '💰', recurring: true },
-    { date: '2026-09-27', name: 'صرف الرواتب الحكومية', nameAr: 'السعودية', country: 'ksa', emoji: '💰', recurring: true },
-    { date: '2026-10-27', name: 'صرف الرواتب الحكومية', nameAr: 'السعودية', country: 'ksa', emoji: '💰', recurring: true },
-    { date: '2026-11-27', name: 'صرف الرواتب الحكومية', nameAr: 'السعودية', country: 'ksa', emoji: '💰', recurring: true },
-    { date: '2026-12-27', name: 'صرف الرواتب الحكومية', nameAr: 'السعودية', country: 'ksa', emoji: '💰', recurring: true },
-    { date: '2027-01-27', name: 'صرف الرواتب الحكومية', nameAr: 'السعودية', country: 'ksa', emoji: '💰', recurring: true },
-    { date: '2027-02-27', name: 'صرف الرواتب الحكومية', nameAr: 'السعودية', country: 'ksa', emoji: '💰', recurring: true },
-    { date: '2027-03-27', name: 'صرف الرواتب الحكومية', nameAr: 'السعودية', country: 'ksa', emoji: '💰', recurring: true },
-    // الرواتب - مصر الحكومية (21-24 من كل شهر)
-    { date: '2026-07-22', name: 'صرف الرواتب الحكومية', nameAr: 'مصر (21-24)', country: 'egypt', emoji: '💰', recurring: true },
-    { date: '2026-08-22', name: 'صرف الرواتب الحكومية', nameAr: 'مصر (21-24)', country: 'egypt', emoji: '💰', recurring: true },
-    { date: '2026-09-22', name: 'صرف الرواتب الحكومية', nameAr: 'مصر (21-24)', country: 'egypt', emoji: '💰', recurring: true },
-    { date: '2026-10-22', name: 'صرف الرواتب الحكومية', nameAr: 'مصر (21-24)', country: 'egypt', emoji: '💰', recurring: true },
-    { date: '2026-11-22', name: 'صرف الرواتب الحكومية', nameAr: 'مصر (21-24)', country: 'egypt', emoji: '💰', recurring: true },
-    { date: '2026-12-22', name: 'صرف الرواتب الحكومية', nameAr: 'مصر (21-24)', country: 'egypt', emoji: '💰', recurring: true },
-    { date: '2027-01-22', name: 'صرف الرواتب الحكومية', nameAr: 'مصر (21-24)', country: 'egypt', emoji: '💰', recurring: true },
-    { date: '2027-02-22', name: 'صرف الرواتب الحكومية', nameAr: 'مصر (21-24)', country: 'egypt', emoji: '💰', recurring: true },
-    { date: '2027-03-22', name: 'صرف الرواتب الحكومية', nameAr: 'مصر (21-24)', country: 'egypt', emoji: '💰', recurring: true },
 ];
 
 function filterEvents(country) {
