@@ -599,6 +599,7 @@ function filterFinance(filter) {
 }
 
 function renderFinance() {
+    populateFinanceProjects();
     let filtered = financeTransactions;
     if (financeFilter !== 'all') filtered = filtered.filter(t => t.type === financeFilter);
 
