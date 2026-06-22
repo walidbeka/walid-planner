@@ -524,32 +524,22 @@ let startingBalance = 0;
 
 function loadFinanceTransactions() {
     if (!currentUser) return;
-    try {
-        db.collection('users').doc(currentUser.uid).collection('finance').onSnapshot(snapshot => {
-            financeTransactions = [];
-            snapshot.forEach(doc => {
-                financeTransactions.push({ id: doc.id, ...doc.data() });
-            });
-            financeTransactions.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
-            renderFinance();
-        }, err => {
-            console.error('Finance snapshot error:', err);
-        });
-    } catch(e) { console.error('Finance load error:', e); }
-    db.collection('users').doc(currentUser.uid).get().then(doc => {
-        if (doc.exists && doc.data().startingBalance !== undefined) {
-            startingBalance = doc.data().startingBalance || 0;
-            document.getElementById('fin-starting-balance').value = startingBalance || '';
-        }
-    }).catch(() => {});
+    const local = JSON.parse(localStorage.getItem('wp_finance_' + currentUser.uid) || '[]');
+    financeTransactions = local;
+    const savedBalance = localStorage.getItem('wp_finance_balance_' + currentUser.uid);
+    if (savedBalance !== null) {
+        startingBalance = parseFloat(savedBalance) || 0;
+        document.getElementById('fin-starting-balance').value = startingBalance || '';
+    }
+    renderFinance();
 }
 
 function saveStartingBalance() {
     const val = parseFloat(document.getElementById('fin-starting-balance').value) || 0;
     startingBalance = val;
-    db.collection('users').doc(currentUser.uid).set({ startingBalance: val }, { merge: true })
-        .then(() => showToast('✅ تم حفظ رصيد البداية', 'success'))
-        .catch(() => showToast('❌ فشل الحفظ', 'error'));
+    localStorage.setItem('wp_finance_balance_' + currentUser.uid, val);
+    db.collection('users').doc(currentUser.uid).set({ startingBalance: val }, { merge: true }).catch(() => {});
+    showToast('✅ تم حفظ رصيد البداية', 'success');
 }
 
 function populateFinanceProjects() {
@@ -576,31 +566,44 @@ async function addFinanceTransaction() {
     const date = document.getElementById('fin-date').value;
     const note = document.getElementById('fin-note').value.trim();
 
-    console.log('Adding finance:', { name, amount, type, project, date, note, uid: currentUser?.uid });
     if (!name) { showToast('ادخل اسم المعاملة', 'error'); return; }
     if (!amount || amount <= 0) { showToast('ادخل مبلغ صحيح', 'error'); return; }
     if (!date) { showToast('اختر التاريخ', 'error'); return; }
     if (!currentUser) { showToast('سجل دخول أولاً', 'error'); return; }
 
+    const tx = {
+        id: 'fin_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+        name, amount, type, project, date, note,
+        createdAt: new Date().toISOString()
+    };
+
+    // حفظ محلي أولاً
+    let localTx = JSON.parse(localStorage.getItem('wp_finance_' + currentUser.uid) || '[]');
+    localTx.unshift(tx);
+    localStorage.setItem('wp_finance_' + currentUser.uid, JSON.stringify(localTx));
+    financeTransactions = localTx;
+    renderFinance();
+    showToast('✅ تمت الإضافة', 'success');
+    document.getElementById('fin-name').value = '';
+    document.getElementById('fin-amount').value = '';
+    document.getElementById('fin-note').value = '';
+
+    // محاولة رفع لـ Firebase في الخلفية
     try {
-        await db.collection('users').doc(currentUser.uid).collection('finance').add({
-            name, amount, type, project, date, note,
-            createdAt: new Date().toISOString()
-        });
-        showToast('✅ تمت الإضافة', 'success');
-        document.getElementById('fin-name').value = '';
-        document.getElementById('fin-amount').value = '';
-        document.getElementById('fin-note').value = '';
-    } catch(err) {
-        console.error('Finance add error:', err);
-        showToast('❌ فشل: ' + err.message, 'error');
+        await db.collection('users').doc(currentUser.uid).collection('finance').doc(tx.id).set(tx);
+    } catch(e) {
+        console.warn('Firebase finance save failed (local saved):', e.message);
     }
 }
 
 function deleteFinanceTransaction(id) {
     if (!confirm('حذف المعاملة؟')) return;
-    db.collection('users').doc(currentUser.uid).collection('finance').doc(id).delete()
-        .then(() => showToast('🗑️ تم الحذف', 'success'));
+    let local = JSON.parse(localStorage.getItem('wp_finance_' + currentUser.uid) || '[]');
+    local = local.filter(t => t.id !== id);
+    localStorage.setItem('wp_finance_' + currentUser.uid, JSON.stringify(local));
+    financeTransactions = local;
+    renderFinance();
+    showToast('🗑️ تم الحذف', 'success');
 }
 
 function filterFinance(filter) {
