@@ -541,6 +541,7 @@ const holidaysData = [
     { date: '2026-06-30', name: 'ذكرى ثورة 30 يونيو', nameAr: '', country: 'egypt', emoji: '🇪🇬' },
     { date: '2026-07-23', name: 'عيد ثورة 23 يوليو', nameAr: '', country: 'egypt', emoji: '🇪🇬' },
     { date: '2026-08-27', name: 'المولد النبوي الشريف', nameAr: '12 ربيع الأول', country: 'ksa', emoji: '🕌' },
+    { date: '2026-08-27', name: 'المولد النبوي الشريف', nameAr: '12 ربيع الأول', country: 'egypt', emoji: '🕌' },
     { date: '2026-08-31', name: 'بدء الدراسة (موسم العودة للمدارس)', nameAr: 'المتوقع', country: 'ksa', emoji: '📚' },
     { date: '2026-09-06', name: 'بدء الدراسة في المدارس الدولية', nameAr: '', country: 'egypt', emoji: '📚' },
     { date: '2026-09-12', name: 'بدء الدراسة بالمدارس الحكومية والخاصة الرسمية', nameAr: '', country: 'egypt', emoji: '📚' },
