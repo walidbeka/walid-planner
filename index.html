@@ -343,10 +343,23 @@
                     <div class="finance-card finance-balance">
                         <div class="finance-card-icon">💵</div>
                         <div class="finance-card-info">
-                            <span class="finance-card-label">الرصيد</span>
+                            <span class="finance-card-label">الرصيد الحالي</span>
                             <span class="finance-card-amount" id="finance-balance">0</span>
                         </div>
                     </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>💰 رصيد بداية المدة</h3>
+                    </div>
+                    <div class="finance-starting-balance">
+                        <div class="form-group" style="margin-bottom:0;flex:1">
+                            <input type="number" id="fin-starting-balance" placeholder="0" min="0">
+                        </div>
+                        <button class="btn btn-primary btn-sm" onclick="saveStartingBalance()">💾 حفظ</button>
+                    </div>
+                    <p class="finance-starting-hint">المبلغ اللي معاك قبل ما تبدأ تسجل المعاملات. الرصيد الحالي = البداية + الدخل - المصروفات.</p>
                 </div>
 
                 <div class="card">
@@ -366,23 +379,38 @@
                         </div>
                         <div class="form-row">
                             <div class="form-group">
+                                <label>المشروع</label>
+                                <select id="fin-project">
+                                    <option value="">بدون مشروع</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
                                 <label>النوع</label>
                                 <select id="fin-type">
                                     <option value="income">📈 دخل</option>
                                     <option value="expense">📉 مصروف</option>
                                 </select>
                             </div>
+                        </div>
+                        <div class="form-row">
                             <div class="form-group">
                                 <label>التاريخ</label>
                                 <input type="date" id="fin-date">
                             </div>
-                        </div>
-                        <div class="form-group">
-                            <label>ملاحظة (اختياري)</label>
-                            <input type="text" id="fin-note" placeholder="تفاصيل إضافية...">
+                            <div class="form-group">
+                                <label>ملاحظة (اختياري)</label>
+                                <input type="text" id="fin-note" placeholder="تفاصيل إضافية...">
+                            </div>
                         </div>
                         <button class="btn btn-primary" onclick="addFinanceTransaction()">➕ إضافة</button>
                     </div>
+                </div>
+
+                <div class="card" id="finance-projects-summary" style="display:none">
+                    <div class="card-header">
+                        <h3>📊 ملخص المشاريع</h3>
+                    </div>
+                    <div id="finance-projects-list"></div>
                 </div>
 
                 <div class="card">
@@ -574,6 +602,6 @@
     <div id="toast-container" class="toast-container"></div>
 
     <script src="firebase-config.js?v=6"></script>
-    <script src="app.js?v=18"></script>
+    <script src="app.js?v=19"></script>
 </body>
 </html>

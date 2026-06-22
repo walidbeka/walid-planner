@@ -520,6 +520,7 @@ function searchInTasks(query) {
 // ==================== الأموال ====================
 let financeTransactions = [];
 let financeFilter = 'all';
+let startingBalance = 0;
 
 function loadFinanceTransactions() {
     if (!currentUser) return;
@@ -532,12 +533,40 @@ function loadFinanceTransactions() {
             });
             renderFinance();
         });
+    db.collection('users').doc(currentUser.uid).get().then(doc => {
+        if (doc.exists && doc.data().startingBalance !== undefined) {
+            startingBalance = doc.data().startingBalance || 0;
+            document.getElementById('fin-starting-balance').value = startingBalance || '';
+        }
+    }).catch(() => {});
+}
+
+function saveStartingBalance() {
+    const val = parseFloat(document.getElementById('fin-starting-balance').value) || 0;
+    startingBalance = val;
+    db.collection('users').doc(currentUser.uid).set({ startingBalance: val }, { merge: true })
+        .then(() => showToast('✅ تم حفظ رصيد البداية', 'success'))
+        .catch(() => showToast('❌ فشل الحفظ', 'error'));
+}
+
+function populateFinanceProjects() {
+    const sel = document.getElementById('fin-project');
+    if (!sel) return;
+    const current = sel.value;
+    const allProjects = [
+        ...projects.filter(p => p.type === 'work').map(p => ({ name: p.name, label: '💼 ' + p.name })),
+        ...projects.filter(p => p.type === 'personal').map(p => ({ name: p.name, label: '🏠 ' + p.name }))
+    ];
+    sel.innerHTML = '<option value="">بدون مشروع</option>' + allProjects.map(p =>
+        `<option value="${p.name}" ${p.name === current ? 'selected' : ''}>${p.label}</option>`
+    ).join('');
 }
 
 function addFinanceTransaction() {
     const name = document.getElementById('fin-name').value.trim();
     const amount = parseFloat(document.getElementById('fin-amount').value);
     const type = document.getElementById('fin-type').value;
+    const project = document.getElementById('fin-project').value;
     const date = document.getElementById('fin-date').value;
     const note = document.getElementById('fin-note').value.trim();
 
@@ -546,7 +575,7 @@ function addFinanceTransaction() {
     if (!date) { showToast('اختر التاريخ', 'error'); return; }
 
     db.collection('users').doc(currentUser.uid).collection('finance').add({
-        name, amount, type, date, note,
+        name, amount, type, project, date, note,
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
     }).then(() => {
         showToast('✅ تمت الإضافة', 'success');
@@ -575,12 +604,44 @@ function renderFinance() {
 
     const totalIncome = financeTransactions.filter(t => t.type === 'income').reduce((s, t) => s + (t.amount || 0), 0);
     const totalExpense = financeTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + (t.amount || 0), 0);
-    const balance = totalIncome - totalExpense;
+    const balance = startingBalance + totalIncome - totalExpense;
 
     document.getElementById('finance-total-income').textContent = formatNumber(totalIncome);
     document.getElementById('finance-total-expense').textContent = formatNumber(totalExpense);
     document.getElementById('finance-balance').textContent = formatNumber(balance);
 
+    // ملخص المشاريع
+    const projectMap = {};
+    financeTransactions.forEach(t => {
+        const p = t.project || 'بدون مشروع';
+        if (!projectMap[p]) projectMap[p] = { income: 0, expense: 0 };
+        if (t.type === 'income') projectMap[p].income += t.amount || 0;
+        else projectMap[p].expense += t.amount || 0;
+    });
+    const projectsSummary = document.getElementById('finance-projects-summary');
+    const projectsListEl = document.getElementById('finance-projects-list');
+    const projectNames = Object.keys(projectMap);
+    if (projectNames.length > 0) {
+        projectsSummary.style.display = 'block';
+        projectsListEl.innerHTML = projectNames.map(p => {
+            const data = projectMap[p];
+            const net = data.income - data.expense;
+            return `<div class="finance-item">
+                <div class="finance-item-icon">📁</div>
+                <div class="finance-item-info">
+                    <div class="finance-item-name">${p}</div>
+                    <div class="finance-item-note">دخل: ${formatNumber(data.income)} | مصروف: ${formatNumber(data.expense)}</div>
+                </div>
+                <div class="finance-item-right">
+                    <div class="finance-item-amount" style="color:${net >= 0 ? 'var(--success)' : 'var(--danger)'}">${net >= 0 ? '+' : ''}${formatNumber(net)}</div>
+                </div>
+            </div>`;
+        }).join('');
+    } else {
+        projectsSummary.style.display = 'none';
+    }
+
+    // سجل المعاملات
     const listEl = document.getElementById('finance-list');
     if (!filtered.length) {
         listEl.innerHTML = '<p class="empty-msg">لا توجد معاملات</p>';
@@ -592,7 +653,7 @@ function renderFinance() {
             <div class="finance-item-icon">${t.type === 'income' ? '📈' : '📉'}</div>
             <div class="finance-item-info">
                 <div class="finance-item-name">${t.name}</div>
-                ${t.note ? '<div class="finance-item-note">' + t.note + '</div>' : ''}
+                <div class="finance-item-note">${t.project ? '📁 ' + t.project : ''} ${t.note ? '| ' + t.note : ''}</div>
             </div>
             <div class="finance-item-right">
                 <div class="finance-item-amount">${t.type === 'income' ? '+' : '-'}${formatNumber(t.amount)}</div>
