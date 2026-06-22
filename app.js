@@ -594,7 +594,7 @@ async function addFinanceTransaction() {
 
     try {
         const userRef = db.collection('users').doc(currentUser.uid);
-        const doc = await userRef.get();
+        const doc = await userRef.get({ source: 'server' });
         const existing = (doc.exists && doc.data().finance) ? doc.data().finance : [];
         existing.unshift(tx);
         await userRef.set({ finance: existing }, { merge: true });
@@ -612,8 +612,8 @@ async function addFinanceTransaction() {
 
 function loadFinanceTransactions() {
     if (!currentUser) return;
-    db.collection('users').doc(currentUser.uid).get().then(doc => {
-        console.log('User doc exists:', doc.exists, '| finance:', doc.data()?.finance?.length || 0);
+    db.collection('users').doc(currentUser.uid).get({ source: 'server' }).then(doc => {
+        console.log('Server read - doc exists:', doc.exists, '| finance:', doc.data()?.finance?.length || 0);
         financeTransactions = doc.exists && doc.data().finance ? doc.data().finance : [];
         if (doc.exists && doc.data().startingBalance !== undefined) {
             startingBalance = doc.data().startingBalance || 0;
