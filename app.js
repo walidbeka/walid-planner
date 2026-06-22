@@ -595,15 +595,17 @@ async function addFinanceTransaction() {
     try {
         const userRef = db.collection('users').doc(currentUser.uid);
         const doc = await userRef.get();
-        const existing = (doc.exists && doc.data().finance) ? doc.data().finance : [];
+        const data = doc.data() || {};
+        const existing = data.finance || [];
         existing.unshift(tx);
-        await userRef.set({ finance: existing }, { merge: true });
+        await userRef.update({ finance: existing });
         financeTransactions = existing;
         renderFinance();
         showToast('✅ تمت الإضافة', 'success');
         nameEl.value = '';
         amountEl.value = '';
         document.getElementById('fin-note').value = '';
+        console.log('Finance saved to Firebase. Total:', existing.length);
     } catch(err) {
         console.error('Finance save error:', err.code, err.message);
         showToast('❌ فشل: ' + err.message, 'error');
@@ -613,9 +615,8 @@ async function addFinanceTransaction() {
 function loadFinanceTransactions() {
     if (!currentUser) return;
     db.collection('users').doc(currentUser.uid).get().then(doc => {
-        if (doc.exists && doc.data().finance) {
-            financeTransactions = doc.data().finance;
-        }
+        console.log('User doc exists:', doc.exists, '| finance:', doc.data()?.finance?.length || 0);
+        financeTransactions = doc.exists && doc.data().finance ? doc.data().finance : [];
         if (doc.exists && doc.data().startingBalance !== undefined) {
             startingBalance = doc.data().startingBalance || 0;
             document.getElementById('fin-starting-balance').value = startingBalance || '';
@@ -631,7 +632,7 @@ function deleteFinanceTransaction(id) {
     db.collection('users').doc(currentUser.uid).get().then(doc => {
         const existing = (doc.exists && doc.data().finance) ? doc.data().finance : [];
         const updated = existing.filter(t => t.id !== id);
-        return db.collection('users').doc(currentUser.uid).set({ finance: updated }, { merge: true });
+        return db.collection('users').doc(currentUser.uid).update({ finance: updated });
     }).then(() => {
         financeTransactions = financeTransactions.filter(t => t.id !== id);
         renderFinance();
