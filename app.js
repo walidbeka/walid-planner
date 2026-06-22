@@ -524,15 +524,18 @@ let startingBalance = 0;
 
 function loadFinanceTransactions() {
     if (!currentUser) return;
+    console.log('Loading finance for:', currentUser.uid);
     db.collection('users').doc(currentUser.uid).collection('finance').onSnapshot(snapshot => {
+        console.log('Finance snapshot:', snapshot.size, 'docs');
         financeTransactions = [];
         snapshot.forEach(doc => {
             financeTransactions.push({ id: doc.id, ...doc.data() });
         });
         financeTransactions.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+        console.log('Finance data:', financeTransactions);
         renderFinance();
     }, err => {
-        console.error('Finance load error:', err);
+        console.error('Finance load error:', err.code, err.message);
     });
     db.collection('users').doc(currentUser.uid).get().then(doc => {
         if (doc.exists && doc.data().startingBalance !== undefined) {
