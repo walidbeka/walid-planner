@@ -18,4 +18,4 @@ const auth = firebase.auth();
 const db = firebase.firestore();
 const functions = firebase.functions();
 
-db.settings({ cacheSizeBytes: firebase.firestore.CACHE_SIZE_UNLIMITED });
+db.settings({ cacheSizeBytes: 1048576 });

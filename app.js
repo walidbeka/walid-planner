@@ -570,19 +570,32 @@ async function addFinanceTransaction() {
 
     try {
         const userRef = db.collection('users').doc(currentUser.uid);
-        const doc = await userRef.get({ source: 'server' });
-        const existing = (doc.exists && doc.data().finance) ? doc.data().finance : [];
-        existing.unshift(tx);
-        await userRef.set({ finance: existing }, { merge: true });
-        financeTransactions = existing;
+        // استخدام arrayUnion للإضافة المباشرة للسيرفر بدون قراءة المصفوفة أولاً
+        await userRef.update({
+            finance: firebase.firestore.FieldValue.arrayUnion(tx)
+        });
+        
+        // تحديث الواجهة فوراً
+        financeTransactions.unshift(tx);
         renderFinance();
-        showToast('✅ تمت الإضافة', 'success');
+        showToast('✅ تمت الإضافة للسيرفر', 'success');
         nameEl.value = '';
         amountEl.value = '';
         document.getElementById('fin-note').value = '';
+        console.log('Finance transaction added via arrayUnion');
     } catch(err) {
-        alert('خطأ: ' + err.message);
-        console.error('Finance save error:', err);
+        // إذا كان المستند غير موجود، نستخدم set
+        try {
+            await db.collection('users').doc(currentUser.uid).set({
+                finance: [tx]
+            }, { merge: true });
+            financeTransactions = [tx];
+            renderFinance();
+            showToast('✅ تمت الإضافة (إنشاء مستند)', 'success');
+        } catch(err2) {
+            alert('خطأ نهائي في الحفظ: ' + err2.message);
+            console.error('Finance save error:', err2);
+        }
     }
 }
 
@@ -603,10 +616,10 @@ function loadFinanceTransactions() {
 
 function deleteFinanceTransaction(id) {
     if (!confirm('حذف المعاملة؟')) return;
-    db.collection('users').doc(currentUser.uid).get().then(doc => {
-        const existing = (doc.exists && doc.data().finance) ? doc.data().finance : [];
-        const updated = existing.filter(t => t.id !== id);
-        return db.collection('users').doc(currentUser.uid).set({ finance: updated }, { merge: true });
+    const tx = financeTransactions.find(t => t.id === id);
+    if (!tx) return;
+    db.collection('users').doc(currentUser.uid).update({
+        finance: firebase.firestore.FieldValue.arrayRemove(tx)
     }).then(() => {
         financeTransactions = financeTransactions.filter(t => t.id !== id);
         renderFinance();
