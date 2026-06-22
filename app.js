@@ -524,21 +524,18 @@ let startingBalance = 0;
 
 function loadFinanceTransactions() {
     if (!currentUser) return;
-    db.collection('users').doc(currentUser.uid).collection('finance')
-        .onSnapshot(snapshot => {
+    try {
+        db.collection('users').doc(currentUser.uid).collection('finance').onSnapshot(snapshot => {
             financeTransactions = [];
             snapshot.forEach(doc => {
                 financeTransactions.push({ id: doc.id, ...doc.data() });
             });
-            financeTransactions.sort((a, b) => {
-                const da = a.createdAt?.toDate?.() || new Date(0);
-                const db2 = b.createdAt?.toDate?.() || new Date(0);
-                return db2 - da;
-            });
+            financeTransactions.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
             renderFinance();
         }, err => {
             console.error('Finance snapshot error:', err);
         });
+    } catch(e) { console.error('Finance load error:', e); }
     db.collection('users').doc(currentUser.uid).get().then(doc => {
         if (doc.exists && doc.data().startingBalance !== undefined) {
             startingBalance = doc.data().startingBalance || 0;
@@ -571,7 +568,7 @@ function populateFinanceProjects() {
     ).join('');
 }
 
-function addFinanceTransaction() {
+async function addFinanceTransaction() {
     const name = document.getElementById('fin-name').value.trim();
     const amount = parseFloat(document.getElementById('fin-amount').value);
     const type = document.getElementById('fin-type').value;
@@ -583,19 +580,21 @@ function addFinanceTransaction() {
     if (!name) { showToast('ادخل اسم المعاملة', 'error'); return; }
     if (!amount || amount <= 0) { showToast('ادخل مبلغ صحيح', 'error'); return; }
     if (!date) { showToast('اختر التاريخ', 'error'); return; }
+    if (!currentUser) { showToast('سجل دخول أولاً', 'error'); return; }
 
-    db.collection('users').doc(currentUser.uid).collection('finance').add({
-        name, amount, type, project, date, note,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    }).then(() => {
+    try {
+        await db.collection('users').doc(currentUser.uid).collection('finance').add({
+            name, amount, type, project, date, note,
+            createdAt: new Date().toISOString()
+        });
         showToast('✅ تمت الإضافة', 'success');
         document.getElementById('fin-name').value = '';
         document.getElementById('fin-amount').value = '';
         document.getElementById('fin-note').value = '';
-    }).catch(err => {
+    } catch(err) {
         console.error('Finance add error:', err);
-        showToast('❌ فشل الإضافة: ' + err.message, 'error');
-    });
+        showToast('❌ فشل: ' + err.message, 'error');
+    }
 }
 
 function deleteFinanceTransaction(id) {
