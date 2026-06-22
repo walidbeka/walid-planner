@@ -570,30 +570,37 @@ function populateFinanceProjects() {
 }
 
 async function addFinanceTransaction() {
-    const name = document.getElementById('fin-name').value.trim();
-    const amount = parseFloat(document.getElementById('fin-amount').value);
+    console.log('=== ADD FINANCE ===');
+    const nameEl = document.getElementById('fin-name');
+    const amountEl = document.getElementById('fin-amount');
+    console.log('name:', nameEl.value, '| amount:', amountEl.value, '| date:', document.getElementById('fin-date').value);
+
+    const name = nameEl.value.trim();
+    const amount = parseFloat(amountEl.value);
     const type = document.getElementById('fin-type').value;
     const project = document.getElementById('fin-project').value;
     const date = document.getElementById('fin-date').value;
     const note = document.getElementById('fin-note').value.trim();
 
-    if (!name) { showToast('ادخل اسم المعاملة', 'error'); return; }
-    if (!amount || amount <= 0) { showToast('ادخل مبلغ صحيح', 'error'); return; }
-    if (!date) { showToast('اختر التاريخ', 'error'); return; }
-    if (!currentUser) { showToast('سجل دخول أولاً', 'error'); return; }
+    if (!name) { console.log('FAIL: no name'); showToast('ادخل اسم المعاملة', 'error'); return; }
+    if (!amount || amount <= 0) { console.log('FAIL: bad amount'); showToast('ادخل مبلغ صحيح', 'error'); return; }
+    if (!date) { console.log('FAIL: no date'); showToast('اختر التاريخ', 'error'); return; }
+    if (!currentUser) { console.log('FAIL: no user'); showToast('سجل دخول أولاً', 'error'); return; }
 
+    console.log('Saving to Firebase...');
     try {
         await db.collection('users').doc(currentUser.uid).collection('finance').add({
             name, amount, type, project, date, note,
             createdAt: new Date().toISOString()
         });
+        console.log('SAVED!');
         showToast('✅ تمت الإضافة', 'success');
-        document.getElementById('fin-name').value = '';
-        document.getElementById('fin-amount').value = '';
+        nameEl.value = '';
+        amountEl.value = '';
         document.getElementById('fin-note').value = '';
     } catch(err) {
-        console.error('Finance add error:', err);
-        showToast('❌ فشل الحفظ: تأكد من Firestore rules', 'error');
+        console.error('SAVE FAILED:', err.code, err.message);
+        showToast('❌ فشل: ' + err.message, 'error');
     }
 }
 
