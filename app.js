@@ -69,8 +69,6 @@ function initApp() {
     setupDailyReminder();
     requestNotificationPermission();
     startTaskTimeChecker();
-    loadFinanceTransactions();
-    document.getElementById('fin-date').value = todayStr();
 }
 
 // ==================== التنقل ====================
@@ -86,7 +84,6 @@ function navigate(page, params) {
     if (page === 'tasks') { renderTasks(); if (params && params.filter) filterTasks(params.filter); }
     if (page === 'calendar') renderCalendar();
     if (page === 'projects') renderProjects();
-    if (page === 'finance') renderFinance();
     if (page === 'search') document.getElementById('global-search-input').focus();
     if (page === 'archive') renderArchive();
     if (page === 'settings') { document.getElementById('theme-toggle-setting').checked = localStorage.getItem('wp_theme') === 'dark'; }
@@ -515,179 +512,6 @@ function searchInTasks(query) {
         const text = item.textContent.toLowerCase();
         item.style.display = !q || text.includes(q) ? '' : 'none';
     });
-}
-
-// ==================== الأموال ====================
-let financeTransactions = [];
-let financeFilter = 'all';
-let startingBalance = 0;
-
-
-
-function saveStartingBalance() {
-    const val = parseFloat(document.getElementById('fin-starting-balance').value) || 0;
-    startingBalance = val;
-    db.collection('users').doc(currentUser.uid).set({ startingBalance: val }, { merge: true })
-        .then(() => showToast('✅ تم حفظ رصيد البداية', 'success'))
-        .catch(err => {
-            console.error('Starting balance save error:', err);
-            showToast('❌ فشل الحفظ', 'error');
-        });
-}
-
-function populateFinanceProjects() {
-    const sel = document.getElementById('fin-project');
-    if (!sel) return;
-    const current = sel.value;
-    let allProjects = [];
-    if (Array.isArray(projects)) {
-        allProjects = projects.map(p => ({ name: p.name || p, label: (p.type === 'personal' ? '🏠 ' : '💼 ') + (p.name || p) }));
-    } else if (projects.work || projects.personal) {
-        (projects.work || []).forEach(p => allProjects.push({ name: p, label: '💼 ' + p }));
-        (projects.personal || []).forEach(p => allProjects.push({ name: p, label: '🏠 ' + p }));
-    }
-    sel.innerHTML = '<option value="">بدون مشروع</option>' + allProjects.map(p =>
-        `<option value="${p.name}" ${p.name === current ? 'selected' : ''}>${p.label}</option>`
-    ).join('');
-}
-
-async function addFinanceTransaction() {
-    const nameEl = document.getElementById('fin-name');
-    const amountEl = document.getElementById('fin-amount');
-    const name = nameEl.value.trim();
-    const amount = parseFloat(amountEl.value);
-    const type = document.getElementById('fin-type').value;
-    const project = document.getElementById('fin-project').value;
-    const date = document.getElementById('fin-date').value;
-    const note = document.getElementById('fin-note').value.trim();
-
-    if (!name) { showToast('ادخل اسم المعاملة', 'error'); return; }
-    if (!amount || amount <= 0) { showToast('ادخل مبلغ صحيح', 'error'); return; }
-    if (!date) { showToast('اختر التاريخ', 'error'); return; }
-    if (!currentUser) { showToast('سجل دخول أولاً', 'error'); return; }
-
-    const tx = { name, amount, type, project, date, note, createdAt: new Date().toISOString() };
-    const colRef = db.collection('users').doc(currentUser.uid).collection('finance');
-
-    try {
-        const docRef = await colRef.add(tx);
-        tx.id = docRef.id;
-        financeTransactions.unshift(tx);
-        renderFinance();
-        showToast('✅ تمت الإضافة', 'success');
-        nameEl.value = '';
-        amountEl.value = '';
-        document.getElementById('fin-note').value = '';
-        console.log('Finance saved with doc id:', docRef.id);
-    } catch(err) {
-        alert('خطأ في الحفظ: ' + err.code + ' - ' + err.message);
-        console.error('Finance save error:', err);
-    }
-}
-
-function loadFinanceTransactions() {
-    if (!currentUser) return;
-    db.collection('users').doc(currentUser.uid).collection('finance')
-        .orderBy('createdAt', 'desc').get().then(snapshot => {
-        financeTransactions = [];
-        snapshot.forEach(doc => {
-            financeTransactions.push({ id: doc.id, ...doc.data() });
-        });
-        console.log('Finance loaded:', financeTransactions.length);
-        renderFinance();
-    }).catch(err => {
-        console.error('Finance load error:', err.code, err.message);
-    });
-}
-
-function deleteFinanceTransaction(id) {
-    if (!confirm('حذف المعاملة؟')) return;
-    db.collection('users').doc(currentUser.uid).collection('finance').doc(id).delete()
-    .then(() => {
-        financeTransactions = financeTransactions.filter(t => t.id !== id);
-        renderFinance();
-        showToast('🗑️ تم الحذف', 'success');
-    }).catch(err => alert('خطأ: ' + err.message));
-}
-
-function filterFinance(filter) {
-    financeFilter = filter;
-    document.querySelectorAll('[data-ffilter]').forEach(c => c.classList.remove('active'));
-    document.querySelector(`[data-ffilter="${filter}"]`).classList.add('active');
-    renderFinance();
-}
-
-function renderFinance() {
-    populateFinanceProjects();
-    let filtered = financeTransactions;
-    if (financeFilter !== 'all') filtered = filtered.filter(t => t.type === financeFilter);
-
-    const totalIncome = financeTransactions.filter(t => t.type === 'income').reduce((s, t) => s + (t.amount || 0), 0);
-    const totalExpense = financeTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + (t.amount || 0), 0);
-    const balance = startingBalance + totalIncome - totalExpense;
-
-    document.getElementById('finance-total-income').textContent = formatNumber(totalIncome);
-    document.getElementById('finance-total-expense').textContent = formatNumber(totalExpense);
-    document.getElementById('finance-balance').textContent = formatNumber(balance);
-
-    // ملخص المشاريع
-    const projectMap = {};
-    financeTransactions.forEach(t => {
-        const p = t.project || 'بدون مشروع';
-        if (!projectMap[p]) projectMap[p] = { income: 0, expense: 0 };
-        if (t.type === 'income') projectMap[p].income += t.amount || 0;
-        else projectMap[p].expense += t.amount || 0;
-    });
-    const projectsSummary = document.getElementById('finance-projects-summary');
-    const projectsListEl = document.getElementById('finance-projects-list');
-    const projectNames = Object.keys(projectMap);
-    if (projectNames.length > 0) {
-        projectsSummary.style.display = 'block';
-        projectsListEl.innerHTML = projectNames.map(p => {
-            const data = projectMap[p];
-            const net = data.income - data.expense;
-            return `<div class="finance-item">
-                <div class="finance-item-icon">📁</div>
-                <div class="finance-item-info">
-                    <div class="finance-item-name">${p}</div>
-                    <div class="finance-item-note">دخل: ${formatNumber(data.income)} | مصروف: ${formatNumber(data.expense)}</div>
-                </div>
-                <div class="finance-item-right">
-                    <div class="finance-item-amount" style="color:${net >= 0 ? 'var(--success)' : 'var(--danger)'}">${net >= 0 ? '+' : ''}${formatNumber(net)}</div>
-                </div>
-            </div>`;
-        }).join('');
-    } else {
-        projectsSummary.style.display = 'none';
-    }
-
-    // سجل المعاملات
-    const listEl = document.getElementById('finance-list');
-    if (!filtered.length) {
-        listEl.innerHTML = '<p class="empty-msg">لا توجد معاملات</p>';
-        return;
-    }
-
-    listEl.innerHTML = filtered.map(t => `
-        <div class="finance-item ${t.type}">
-            <div class="finance-item-icon">${t.type === 'income' ? '📈' : '📉'}</div>
-            <div class="finance-item-info">
-                <div class="finance-item-name">${t.name}</div>
-                <div class="finance-item-note">${t.project ? '📁 ' + t.project : ''} ${t.note ? '| ' + t.note : ''}</div>
-            </div>
-            <div class="finance-item-right">
-                <div class="finance-item-amount">${t.type === 'income' ? '+' : '-'}${formatNumber(t.amount)}</div>
-                <div class="finance-item-date">${t.date}</div>
-            </div>
-            <div class="finance-item-actions">
-                <button class="icon-btn" onclick="deleteFinanceTransaction('${t.id}')" title="حذف">🗑️</button>
-            </div>
-        </div>
-    `).join('');
-}
-
-function formatNumber(num) {
-    return num.toLocaleString('ar-EG', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 }
 
 function globalSearch(query) {
