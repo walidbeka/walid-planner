@@ -1062,22 +1062,7 @@ function checkNotifications() {
     const todayTasks = tasks.filter(t => t.date === today && t.status !== 'completed' && !t.archived);
     const highPriority = tasks.filter(t => t.priority === 'high' && t.status !== 'completed' && !t.archived);
 
-    // إشعار المتصفح
-    if (todayTasks.length > 0 && 'Notification' in window && Notification.permission === 'granted') {
-        new Notification('Walid Planner - مهام اليوم', {
-            body: `لديك ${todayTasks.length} مهمة اليوم`,
-            icon: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📋</text></svg>'
-        });
-    }
-
-    if (overdueTasks.length > 0 && 'Notification' in window && Notification.permission === 'granted') {
-        new Notification('Walid Planner - مهام متأخرة ⚠️', {
-            body: `لديك ${overdueTasks.length} مهمة متأخرة`,
-            icon: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔴</text></svg>'
-        });
-    }
-
-    // الإشعارات داخل التطبيق
+    // الإشعارات داخل التطبيق (الجرس)
     allNotifications = [];
     todayTasks.forEach(t => {
         allNotifications.push({ text: '📅 مهمة اليوم: ' + t.name, time: 'اليوم', type: 'reminder' });
