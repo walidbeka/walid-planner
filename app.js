@@ -69,6 +69,8 @@ function initApp() {
     setupDailyReminder();
     requestNotificationPermission();
     startTaskTimeChecker();
+    loadFinanceTransactions();
+    document.getElementById('fin-date').value = todayStr();
 }
 
 // ==================== التنقل ====================
@@ -84,6 +86,7 @@ function navigate(page, params) {
     if (page === 'tasks') { renderTasks(); if (params && params.filter) filterTasks(params.filter); }
     if (page === 'calendar') renderCalendar();
     if (page === 'projects') renderProjects();
+    if (page === 'finance') renderFinance();
     if (page === 'search') document.getElementById('global-search-input').focus();
     if (page === 'archive') renderArchive();
     if (page === 'settings') { document.getElementById('theme-toggle-setting').checked = localStorage.getItem('wp_theme') === 'dark'; }
@@ -512,6 +515,98 @@ function searchInTasks(query) {
         const text = item.textContent.toLowerCase();
         item.style.display = !q || text.includes(q) ? '' : 'none';
     });
+}
+
+// ==================== الأموال ====================
+let financeTransactions = [];
+let financeFilter = 'all';
+
+function loadFinanceTransactions() {
+    if (!currentUser) return;
+    db.collection('users').doc(currentUser.uid).collection('finance')
+        .orderBy('createdAt', 'desc')
+        .onSnapshot(snapshot => {
+            financeTransactions = [];
+            snapshot.forEach(doc => {
+                financeTransactions.push({ id: doc.id, ...doc.data() });
+            });
+            renderFinance();
+        });
+}
+
+function addFinanceTransaction() {
+    const name = document.getElementById('fin-name').value.trim();
+    const amount = parseFloat(document.getElementById('fin-amount').value);
+    const type = document.getElementById('fin-type').value;
+    const date = document.getElementById('fin-date').value;
+    const note = document.getElementById('fin-note').value.trim();
+
+    if (!name) { showToast('ادخل اسم المعاملة', 'error'); return; }
+    if (!amount || amount <= 0) { showToast('ادخل مبلغ صحيح', 'error'); return; }
+    if (!date) { showToast('اختر التاريخ', 'error'); return; }
+
+    db.collection('users').doc(currentUser.uid).collection('finance').add({
+        name, amount, type, date, note,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(() => {
+        showToast('✅ تمت الإضافة', 'success');
+        document.getElementById('fin-name').value = '';
+        document.getElementById('fin-amount').value = '';
+        document.getElementById('fin-note').value = '';
+    }).catch(() => showToast('❌ فشل الإضافة', 'error'));
+}
+
+function deleteFinanceTransaction(id) {
+    if (!confirm('حذف المعاملة؟')) return;
+    db.collection('users').doc(currentUser.uid).collection('finance').doc(id).delete()
+        .then(() => showToast('🗑️ تم الحذف', 'success'));
+}
+
+function filterFinance(filter) {
+    financeFilter = filter;
+    document.querySelectorAll('[data-ffilter]').forEach(c => c.classList.remove('active'));
+    document.querySelector(`[data-ffilter="${filter}"]`).classList.add('active');
+    renderFinance();
+}
+
+function renderFinance() {
+    let filtered = financeTransactions;
+    if (financeFilter !== 'all') filtered = filtered.filter(t => t.type === financeFilter);
+
+    const totalIncome = financeTransactions.filter(t => t.type === 'income').reduce((s, t) => s + (t.amount || 0), 0);
+    const totalExpense = financeTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + (t.amount || 0), 0);
+    const balance = totalIncome - totalExpense;
+
+    document.getElementById('finance-total-income').textContent = formatNumber(totalIncome);
+    document.getElementById('finance-total-expense').textContent = formatNumber(totalExpense);
+    document.getElementById('finance-balance').textContent = formatNumber(balance);
+
+    const listEl = document.getElementById('finance-list');
+    if (!filtered.length) {
+        listEl.innerHTML = '<p class="empty-msg">لا توجد معاملات</p>';
+        return;
+    }
+
+    listEl.innerHTML = filtered.map(t => `
+        <div class="finance-item ${t.type}">
+            <div class="finance-item-icon">${t.type === 'income' ? '📈' : '📉'}</div>
+            <div class="finance-item-info">
+                <div class="finance-item-name">${t.name}</div>
+                ${t.note ? '<div class="finance-item-note">' + t.note + '</div>' : ''}
+            </div>
+            <div class="finance-item-right">
+                <div class="finance-item-amount">${t.type === 'income' ? '+' : '-'}${formatNumber(t.amount)}</div>
+                <div class="finance-item-date">${t.date}</div>
+            </div>
+            <div class="finance-item-actions">
+                <button class="icon-btn" onclick="deleteFinanceTransaction('${t.id}')" title="حذف">🗑️</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function formatNumber(num) {
+    return num.toLocaleString('ar-EG', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 }
 
 function globalSearch(query) {

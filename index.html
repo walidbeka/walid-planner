@@ -99,6 +99,10 @@
                     <span class="nav-icon">📁</span>
                     <span>المشاريع</span>
                 </button>
+                <button class="nav-btn" data-page="finance" onclick="navigate('finance')">
+                    <span class="nav-icon">💰</span>
+                    <span>الأموال</span>
+                </button>
                 <button class="nav-btn" data-page="search" onclick="navigate('search')">
                     <span class="nav-icon">🔍</span>
                     <span>بحث</span>
@@ -315,6 +319,85 @@
                 </div>
             </section>
 
+            <!-- ======== صفحة الأموال ======== -->
+            <section id="page-finance" class="page">
+                <div class="page-header">
+                    <h1>💰 الأموال</h1>
+                </div>
+
+                <div class="finance-summary">
+                    <div class="finance-card finance-income">
+                        <div class="finance-card-icon">📈</div>
+                        <div class="finance-card-info">
+                            <span class="finance-card-label">الدخل</span>
+                            <span class="finance-card-amount" id="finance-total-income">0</span>
+                        </div>
+                    </div>
+                    <div class="finance-card finance-expense">
+                        <div class="finance-card-icon">📉</div>
+                        <div class="finance-card-info">
+                            <span class="finance-card-label">المصروفات</span>
+                            <span class="finance-card-amount" id="finance-total-expense">0</span>
+                        </div>
+                    </div>
+                    <div class="finance-card finance-balance">
+                        <div class="finance-card-icon">💵</div>
+                        <div class="finance-card-info">
+                            <span class="finance-card-label">الرصيد</span>
+                            <span class="finance-card-amount" id="finance-balance">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>إضافة معاملة</h3>
+                    </div>
+                    <div class="finance-add-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>الاسم</label>
+                                <input type="text" id="fin-name" placeholder="مثال: راتب، بنزين...">
+                            </div>
+                            <div class="form-group">
+                                <label>المبلغ</label>
+                                <input type="number" id="fin-amount" placeholder="0" min="0">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>النوع</label>
+                                <select id="fin-type">
+                                    <option value="income">📈 دخل</option>
+                                    <option value="expense">📉 مصروف</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>التاريخ</label>
+                                <input type="date" id="fin-date">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>ملاحظة (اختياري)</label>
+                            <input type="text" id="fin-note" placeholder="تفاصيل إضافية...">
+                        </div>
+                        <button class="btn btn-primary" onclick="addFinanceTransaction()">➕ إضافة</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>سجل المعاملات</h3>
+                        <div class="finance-filter-chips">
+                            <button class="chip active" data-ffilter="all" onclick="filterFinance('all')">الكل</button>
+                            <button class="chip" data-ffilter="income" onclick="filterFinance('income')">📈 دخل</button>
+                            <button class="chip" data-ffilter="expense" onclick="filterFinance('expense')">📉 مصروف</button>
+                        </div>
+                    </div>
+                    <div id="finance-list"></div>
+                </div>
+            </section>
+
             <!-- ======== صفحة البحث ======== -->
             <section id="page-search" class="page">
                 <div class="page-header">
@@ -491,6 +574,6 @@
     <div id="toast-container" class="toast-container"></div>
 
     <script src="firebase-config.js?v=6"></script>
-    <script src="app.js?v=17"></script>
+    <script src="app.js?v=18"></script>
 </body>
 </html>
