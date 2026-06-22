@@ -595,20 +595,18 @@ async function addFinanceTransaction() {
     try {
         const userRef = db.collection('users').doc(currentUser.uid);
         const doc = await userRef.get();
-        const data = doc.data() || {};
-        const existing = data.finance || [];
+        const existing = (doc.exists && doc.data().finance) ? doc.data().finance : [];
         existing.unshift(tx);
-        await userRef.update({ finance: existing });
+        await userRef.set({ finance: existing }, { merge: true });
         financeTransactions = existing;
         renderFinance();
         showToast('✅ تمت الإضافة', 'success');
         nameEl.value = '';
         amountEl.value = '';
         document.getElementById('fin-note').value = '';
-        console.log('Finance saved to Firebase. Total:', existing.length);
     } catch(err) {
-        console.error('Finance save error:', err.code, err.message);
-        showToast('❌ فشل: ' + err.message, 'error');
+        alert('خطأ: ' + err.message);
+        console.error('Finance save error:', err);
     }
 }
 
@@ -632,12 +630,12 @@ function deleteFinanceTransaction(id) {
     db.collection('users').doc(currentUser.uid).get().then(doc => {
         const existing = (doc.exists && doc.data().finance) ? doc.data().finance : [];
         const updated = existing.filter(t => t.id !== id);
-        return db.collection('users').doc(currentUser.uid).update({ finance: updated });
+        return db.collection('users').doc(currentUser.uid).set({ finance: updated }, { merge: true });
     }).then(() => {
         financeTransactions = financeTransactions.filter(t => t.id !== id);
         renderFinance();
         showToast('🗑️ تم الحذف', 'success');
-    }).catch(err => console.error('Delete error:', err));
+    }).catch(err => alert('خطأ: ' + err.message));
 }
 
 function filterFinance(filter) {
