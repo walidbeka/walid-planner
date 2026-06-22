@@ -536,8 +536,9 @@ let eventsCountryFilter = 'all';
 const holidaysData = [
     { date: '2026-06-16', name: 'رأس السنة الهجرية', nameAr: '1 محرم 1448هـ', country: 'ksa', emoji: '🌙' },
     { date: '2026-06-16', name: 'رأس السنة الهجرية', nameAr: '1448هـ', country: 'egypt', emoji: '🌙' },
-    { date: '2026-06-23', name: 'ذكرى ثورة 30 يونيو', nameAr: 'تقديري', country: 'egypt', emoji: '🇪🇬' },
     { date: '2026-06-25', name: 'يوم عاشوراء', nameAr: '10 محرم 1448هـ', country: 'ksa', emoji: '🌙' },
+    { date: '2026-06-25', name: 'يوم عاشوراء', nameAr: '10 محرم 1448هـ', country: 'egypt', emoji: '🌙' },
+    { date: '2026-06-30', name: 'ذكرى ثورة 30 يونيو', nameAr: '', country: 'egypt', emoji: '🇪🇬' },
     { date: '2026-07-23', name: 'عيد ثورة 23 يوليو', nameAr: '', country: 'egypt', emoji: '🇪🇬' },
     { date: '2026-08-27', name: 'المولد النبوي الشريف', nameAr: '12 ربيع الأول', country: 'ksa', emoji: '🕌' },
     { date: '2026-08-31', name: 'بدء الدراسة (موسم العودة للمدارس)', nameAr: 'المتوقع', country: 'ksa', emoji: '📚' },
