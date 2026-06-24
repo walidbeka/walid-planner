@@ -174,7 +174,7 @@ body {
 .main-content {
     flex: 1;
     padding: calc(var(--top-bar-height) + 16px) 16px 80px;
-    max-width: 680px;
+    max-width: 100%;
     margin: 0 auto;
     width: 100%;
 }
@@ -680,6 +680,9 @@ body {
 .home-clock-box .clock-time { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; direction: ltr; color: var(--primary); }
 
 /* === الصفحة الرئيسية === */
+.home-content-grid { display: flex; flex-direction: column; gap: 16px; }
+.home-main { min-width: 0; }
+.home-sidebar { }
 .home-sections { display: flex; flex-direction: column; gap: 12px; }
 .home-greeting { font-size: 24px; font-weight: 700; margin-bottom: 2px; }
 .home-date-sub { font-size: 14px; color: var(--text-secondary); margin-bottom: 16px; }
@@ -693,11 +696,13 @@ body {
 @media (min-width: 768px) {
     .sidebar { right: 0 !important; position: fixed; }
     .sidebar-overlay { display: none !important; }
-    .main-content { margin-right: var(--sidebar-width); padding-top: calc(var(--top-bar-height) + 24px); padding-left: 32px; padding-right: 32px; }
-    .top-bar { right: var(--sidebar-width); }
+    .main-content { margin-right: var(--sidebar-width); padding-top: calc(var(--top-bar-height) + 24px); padding-left: 24px; padding-right: 24px; max-width: 100%; }
+    .top-bar { right: var(--sidebar-width); left: 0; }
     .fab { left: 28px; bottom: 28px; }
     .stats-grid { grid-template-columns: repeat(4, 1fr); }
     .home-sections { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .home-content-grid { display: grid; grid-template-columns: 1fr 300px; gap: 20px; align-items: start; }
+    .home-sidebar { position: sticky; top: calc(var(--top-bar-height) + 24px); }
     .modal-overlay { align-items: center; }
     .modal { border-radius: var(--radius-lg); border: 1px solid var(--border); border-bottom: 1px solid var(--border); }
     .toast-container { left: auto; right: calc(var(--sidebar-width) + 16px); }
@@ -739,5 +744,8 @@ body {
 .tasks-actions-top { display: flex; gap: 8px; }
 
 @media (min-width: 1024px) {
-    .main-content { max-width: 800px; }
+    .main-content { max-width: 100%; }
+    .home-content-grid { display: grid; grid-template-columns: 1fr 320px; gap: 20px; align-items: start; }
+    .home-main { min-width: 0; }
+    .home-sidebar { position: sticky; top: calc(var(--top-bar-height) + 24px); }
 }

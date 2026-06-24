@@ -556,37 +556,50 @@ function globalSearch(query) {
 let eventsCountryFilter = 'all';
 
 const holidaysData = [
-    { date: '2026-06-16', name: 'رأس السنة الهجرية', nameAr: '1 محرم 1448هـ', country: 'ksa', emoji: '🌙' },
-    { date: '2026-06-16', name: 'رأس السنة الهجرية', nameAr: '1448هـ', country: 'egypt', emoji: '🌙' },
-    { date: '2026-06-25', name: 'يوم عاشوراء', nameAr: '10 محرم 1448هـ', country: 'ksa', emoji: '🌙' },
-    { date: '2026-06-25', name: 'يوم عاشوراء', nameAr: '10 محرم 1448هـ', country: 'egypt', emoji: '🌙' },
-    { date: '2026-06-30', name: 'ذكرى ثورة 30 يونيو', nameAr: '', country: 'egypt', emoji: '🇪🇬' },
-    { date: '2026-07-23', name: 'عيد ثورة 23 يوليو', nameAr: '', country: 'egypt', emoji: '🇪🇬' },
-    { date: '2026-08-27', name: 'المولد النبوي الشريف', nameAr: '12 ربيع الأول', country: 'ksa', emoji: '🕌' },
-    { date: '2026-08-27', name: 'المولد النبوي الشريف', nameAr: '12 ربيع الأول', country: 'egypt', emoji: '🕌' },
-    { date: '2026-08-31', name: 'بدء الدراسة (موسم العودة للمدارس)', nameAr: 'المتوقع', country: 'ksa', emoji: '📚' },
-    { date: '2026-09-06', name: 'بدء الدراسة في المدارس الدولية', nameAr: '', country: 'egypt', emoji: '📚' },
-    { date: '2026-09-12', name: 'بدء الدراسة بالمدارس الحكومية والخاصة الرسمية', nameAr: '', country: 'egypt', emoji: '📚' },
-    { date: '2026-09-19', name: 'بدء الدراسة بالجامعات والمعاهد المصرية', nameAr: '', country: 'egypt', emoji: '📚' },
-    { date: '2026-09-23', name: 'اليوم الوطني السعودي', nameAr: 'الـ96', country: 'ksa', emoji: '🇸🇦' },
-    { date: '2026-10-06', name: 'عيد القوات المسلحة', nameAr: 'انتصارات أكتوبر', country: 'egypt', emoji: '🎖️' },
-    { date: '2026-10-31', name: 'الهالوين', nameAr: '', country: 'ksa', emoji: '🎃' },
-    { date: '2026-11-11', name: 'يوم العزاب', nameAr: '11.11', country: 'ksa', emoji: '🛒' },
-    { date: '2026-11-11', name: 'يوم العزاب', nameAr: '11/11', country: 'egypt', emoji: '🛒' },
-    { date: '2026-11-27', name: 'الجمعة البيضاء', nameAr: '', country: 'ksa', emoji: '🛒' },
-    { date: '2026-11-27', name: 'الجمعة البيضاء', nameAr: '', country: 'egypt', emoji: '🛒' },
-    { date: '2026-12-18', name: 'اليوم العالمي للغة العربية', nameAr: '', country: 'ksa', emoji: '📖' },
-    { date: '2026-12-31', name: 'إجازة منتصف العام الدراسي', nameAr: '', country: 'ksa', emoji: '🏫' },
-    { date: '2027-01-01', name: 'رأس السنة الميلادية', nameAr: '', country: 'ksa', emoji: '🎆' },
-    { date: '2027-01-07', name: 'عيد الميلاد المجيد', nameAr: '', country: 'egypt', emoji: '🎄' },
-    { date: '2027-01-23', name: 'بدء إجازة نصف العام الدراسي', nameAr: 'تنتهي 4 فبراير', country: 'egypt', emoji: '🏫' },
-    { date: '2027-01-25', name: 'عيد الثورة وعيد الشرطة', nameAr: '', country: 'egypt', emoji: '🇪🇬' },
-    { date: '2027-02-06', name: 'بدء الفصل الدراسي الثاني', nameAr: '', country: 'egypt', emoji: '📚' },
-    { date: '2027-02-07', name: 'بداية شهر رمضان المبارك', nameAr: '1448هـ', country: 'ksa', emoji: '🌙' },
-    { date: '2027-02-07', name: 'أول أيام شهر رمضان المبارك', nameAr: '1448هـ', country: 'egypt', emoji: '🌙' },
-    { date: '2027-02-22', name: 'يوم التأسيس السعودي', nameAr: '', country: 'ksa', emoji: '🏛️' },
-    { date: '2027-03-11', name: 'يوم العلم السعودي', nameAr: '', country: 'ksa', emoji: '🎓' },
+    { date: '2026-06-16', name: 'رأس السنة الهجرية', nameAr: '1 محرم 1448هـ', country: 'ksa', category: 'islamic' },
+    { date: '2026-06-16', name: 'رأس السنة الهجرية', nameAr: '1448هـ', country: 'egypt', category: 'islamic' },
+    { date: '2026-06-25', name: 'يوم عاشوراء', nameAr: '10 محرم 1448هـ', country: 'ksa', category: 'islamic' },
+    { date: '2026-06-25', name: 'يوم عاشوراء', nameAr: '10 محرم 1448هـ', country: 'egypt', category: 'islamic' },
+    { date: '2026-06-30', name: 'ذكرى ثورة 30 يونيو', nameAr: '', country: 'egypt', category: 'national' },
+    { date: '2026-07-23', name: 'عيد ثورة 23 يوليو', nameAr: '', country: 'egypt', category: 'national' },
+    { date: '2026-08-27', name: 'المولد النبوي الشريف', nameAr: '12 ربيع الأول', country: 'ksa', category: 'islamic' },
+    { date: '2026-08-27', name: 'المولد النبوي الشريف', nameAr: '12 ربيع الأول', country: 'egypt', category: 'islamic' },
+    { date: '2026-08-31', name: 'بدء الدراسة (موسم العودة للمدارس)', nameAr: 'المتوقع', country: 'ksa', category: 'education' },
+    { date: '2026-09-06', name: 'بدء الدراسة في المدارس الدولية', nameAr: '', country: 'egypt', category: 'education' },
+    { date: '2026-09-12', name: 'بدء الدراسة بالمدارس الحكومية والخاصة الرسمية', nameAr: '', country: 'egypt', category: 'education' },
+    { date: '2026-09-19', name: 'بدء الدراسة بالجامعات والمعاهد المصرية', nameAr: '', country: 'egypt', category: 'education' },
+    { date: '2026-09-23', name: 'اليوم الوطني السعودي', nameAr: 'الـ96', country: 'ksa', category: 'national' },
+    { date: '2026-10-06', name: 'عيد القوات المسلحة', nameAr: 'انتصارات أكتوبر', country: 'egypt', category: 'national' },
+    { date: '2026-10-31', name: 'الهالوين', nameAr: '', country: 'ksa', category: 'social' },
+    { date: '2026-11-11', name: 'يوم العزاب', nameAr: '11.11', country: 'ksa', category: 'social' },
+    { date: '2026-11-11', name: 'يوم العزاب', nameAr: '11/11', country: 'egypt', category: 'social' },
+    { date: '2026-11-27', name: 'الجمعة البيضاء', nameAr: '', country: 'ksa', category: 'shopping' },
+    { date: '2026-11-27', name: 'الجمعة البيضاء', nameAr: '', country: 'egypt', category: 'shopping' },
+    { date: '2026-12-18', name: 'اليوم العالمي للغة العربية', nameAr: '', country: 'ksa', category: 'cultural' },
+    { date: '2026-12-31', name: 'إجازة منتصف العام الدراسي', nameAr: '', country: 'ksa', category: 'education' },
+    { date: '2027-01-01', name: 'رأس السنة الميلادية', nameAr: '', country: 'ksa', category: 'social' },
+    { date: '2027-01-07', name: 'عيد الميلاد المجيد', nameAr: '', country: 'egypt', category: 'religious' },
+    { date: '2027-01-23', name: 'بدء إجازة نصف العام الدراسي', nameAr: 'تنتهي 4 فبراير', country: 'egypt', category: 'education' },
+    { date: '2027-01-25', name: 'عيد الثورة وعيد الشرطة', nameAr: '', country: 'egypt', category: 'national' },
+    { date: '2027-02-06', name: 'بدء الفصل الدراسي الثاني', nameAr: '', country: 'egypt', category: 'education' },
+    { date: '2027-02-07', name: 'بداية شهر رمضان المبارك', nameAr: '1448هـ', country: 'ksa', category: 'islamic' },
+    { date: '2027-02-07', name: 'أول أيام شهر رمضان المبارك', nameAr: '1448هـ', country: 'egypt', category: 'islamic' },
+    { date: '2027-02-22', name: 'يوم التأسيس السعودي', nameAr: '', country: 'ksa', category: 'national' },
+    { date: '2027-03-11', name: 'يوم العلم السعودي', nameAr: '', country: 'ksa', category: 'education' },
 ];
+
+function getEventIcon(cat) {
+    const icons = {
+        islamic: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>',
+        national: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg>',
+        education: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>',
+        social: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>',
+        shopping: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>',
+        cultural: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>',
+        religious: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path></svg>',
+    };
+    return icons[cat] || icons.social;
+}
 
 function filterEvents(country) {
     eventsCountryFilter = country;
@@ -605,10 +618,10 @@ function renderEvents() {
     const upcoming = filtered.find(e => e.date >= today);
     if (upcoming) {
         const diff = Math.ceil((new Date(upcoming.date) - new Date(today)) / 86400000);
-        const countryLabel = upcoming.country === 'ksa' ? '🇸🇦 السعودية' : '🇪🇬 مصر';
+        const countryLabel = upcoming.country === 'ksa' ? 'السعودية' : 'مصر';
         nextBox.innerHTML = `
             <div class="events-next-label">الحدث القادم</div>
-            <div class="events-next-name">${upcoming.emoji} ${upcoming.name}</div>
+            <div class="events-next-name">${getEventIcon(upcoming.category)} ${upcoming.name}</div>
             <div class="events-next-date">${formatEventDate(upcoming.date)} — ${countryLabel}</div>
             <div class="events-next-countdown">${diff === 0 ? 'اليوم!' : diff === 1 ? 'بكرة!' : 'بعد ' + diff + ' يوم'}</div>
         `;
@@ -633,10 +646,10 @@ function renderEvents() {
 
         const itemClass = diff < 0 ? 'past' : diff === 0 ? 'today' : 'upcoming';
         const flagClass = e.country === 'ksa' ? 'ksa' : 'egypt';
-        const countryTag = e.country === 'ksa' ? '🇸🇦 السعودية' : '🇪🇬 مصر';
+        const countryTag = e.country === 'ksa' ? 'السعودية' : 'مصر';
 
         return `<div class="event-item ${itemClass}">
-            <div class="event-flag ${flagClass}">${e.emoji}</div>
+            <div class="event-flag ${flagClass}">${getEventIcon(e.category)}</div>
             <div class="event-info">
                 <div class="event-name">${e.name}</div>
                 <div class="event-date">${formatEventDate(e.date)}${e.nameAr ? ' — ' + e.nameAr : ''}</div>

@@ -17,7 +17,7 @@
     </script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-functions-compat.js">
     </script>
-    <link rel="stylesheet" href="style.css?v=10">
+    <link rel="stylesheet" href="style.css?v=11">
 </head>
 <body>
     <!-- ==================== شاشة تسجيل الدخول ==================== -->
@@ -141,70 +141,76 @@
                     <h1 class="home-greeting" id="home-greeting">مرحباً بك</h1>
                     <p class="home-date-sub" id="home-date">اليوم</p>
                 </div>
-                <div class="home-quote" id="home-quote"></div>
-                <div class="home-clock" id="home-clock">
-                    <div class="home-clock-box">
-                        <div class="clock-city">🇪🇬 القاهرة</div>
-                        <div class="clock-time" id="clock-cairo">--:--:--</div>
-                    </div>
-                    <div class="home-clock-box">
-                        <div class="clock-city">🇸🇦 الرياض</div>
-                        <div class="clock-time" id="clock-riyadh">--:--:--</div>
-                    </div>
-                </div>
-                <div class="stats-grid">
-                    <div class="stat-card stat-today" onclick="navigate('tasks', {filter:'today'})">
-                        <div class="stat-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg></div>
-                        <div class="stat-info">
-                            <span class="stat-num" id="stat-today">0</span>
-                            <span class="stat-label">مهام اليوم</span>
+                <div class="home-content-grid">
+                    <div class="home-main">
+                        <div class="home-clock" id="home-clock">
+                            <div class="home-clock-box">
+                                <div class="clock-city">Cairo EG</div>
+                                <div class="clock-time" id="clock-cairo">--:--:--</div>
+                            </div>
+                            <div class="home-clock-box">
+                                <div class="clock-city">Riyadh SA</div>
+                                <div class="clock-time" id="clock-riyadh">--:--:--</div>
+                            </div>
+                        </div>
+                        <div class="stats-grid">
+                            <div class="stat-card stat-today" onclick="navigate('tasks', {filter:'today'})">
+                                <div class="stat-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg></div>
+                                <div class="stat-info">
+                                    <span class="stat-num" id="stat-today">0</span>
+                                    <span class="stat-label">مهام اليوم</span>
+                                </div>
+                            </div>
+                            <div class="stat-card stat-overdue" onclick="navigate('tasks', {filter:'overdue'})">
+                                <div class="stat-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg></div>
+                                <div class="stat-info">
+                                    <span class="stat-num" id="stat-overdue">0</span>
+                                    <span class="stat-label">متأخرة</span>
+                                </div>
+                            </div>
+                            <div class="stat-card stat-upcoming" onclick="navigate('tasks', {filter:'upcoming'})">
+                                <div class="stat-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg></div>
+                                <div class="stat-info">
+                                    <span class="stat-num" id="stat-upcoming">0</span>
+                                    <span class="stat-label">قادمة</span>
+                                </div>
+                            </div>
+                            <div class="stat-card stat-done" onclick="navigate('tasks', {filter:'completed'})">
+                                <div class="stat-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg></div>
+                                <div class="stat-info">
+                                    <span class="stat-num" id="stat-completed">0</span>
+                                    <span class="stat-label">مكتملة</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="progress-card card">
+                            <div class="progress-header">
+                                <span>نسبة إنجاز اليوم</span>
+                                <span id="progress-percent">0%</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-bar-fill" id="progress-fill" style="width:0%"></div>
+                            </div>
+                        </div>
+                        <div class="home-sections">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3>مهام اليوم</h3>
+                                    <button class="btn btn-sm btn-primary" onclick="navigate('tasks', {filter:'today'})">عرض الكل</button>
+                                </div>
+                                <div id="home-today-list" class="task-mini-list"></div>
+                            </div>
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3>مهام متأخرة</h3>
+                                    <button class="btn btn-sm btn-danger" onclick="navigate('tasks', {filter:'overdue'})">عرض الكل</button>
+                                </div>
+                                <div id="home-overdue-list" class="task-mini-list"></div>
+                            </div>
                         </div>
                     </div>
-                    <div class="stat-card stat-overdue" onclick="navigate('tasks', {filter:'overdue'})">
-                        <div class="stat-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg></div>
-                        <div class="stat-info">
-                            <span class="stat-num" id="stat-overdue">0</span>
-                            <span class="stat-label">متأخرة</span>
-                        </div>
-                    </div>
-                    <div class="stat-card stat-upcoming" onclick="navigate('tasks', {filter:'upcoming'})">
-                        <div class="stat-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg></div>
-                        <div class="stat-info">
-                            <span class="stat-num" id="stat-upcoming">0</span>
-                            <span class="stat-label">قادمة</span>
-                        </div>
-                    </div>
-                    <div class="stat-card stat-done" onclick="navigate('tasks', {filter:'completed'})">
-                        <div class="stat-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg></div>
-                        <div class="stat-info">
-                            <span class="stat-num" id="stat-completed">0</span>
-                            <span class="stat-label">مكتملة</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="progress-card card">
-                    <div class="progress-header">
-                        <span>نسبة إنجاز اليوم</span>
-                        <span id="progress-percent">0%</span>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-bar-fill" id="progress-fill" style="width:0%"></div>
-                    </div>
-                </div>
-                <div class="home-sections">
-                    <div class="card">
-                        <div class="card-header">
-                            <h3>مهام اليوم</h3>
-                            <button class="btn btn-sm btn-primary" onclick="navigate('tasks', {filter:'today'})">عرض الكل</button>
-                        </div>
-                        <div id="home-today-list" class="task-mini-list"></div>
-                    </div>
-                    <div class="card">
-                        <div class="card-header">
-                            <h3>مهام متأخرة</h3>
-                            <button class="btn btn-sm btn-danger" onclick="navigate('tasks', {filter:'overdue'})">عرض الكل</button>
-                        </div>
-                        <div id="home-overdue-list" class="task-mini-list"></div>
+                    <div class="home-sidebar">
+                        <div class="home-quote" id="home-quote"></div>
                     </div>
                 </div>
             </section>
@@ -567,6 +573,6 @@
     <div id="toast-container" class="toast-container"></div>
 
     <script src="firebase-config.js?v=7"></script>
-    <script src="app.js?v=41"></script>
+    <script src="app.js?v=42"></script>
 </body>
 </html>
