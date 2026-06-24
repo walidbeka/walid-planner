@@ -274,8 +274,6 @@ function openAddTaskModal(data) {
     document.getElementById('task-priority').value = data && data.priority ? data.priority : 'medium';
     document.getElementById('task-status').value = 'new';
     document.getElementById('task-date').value = data && data.date ? data.date : todayStr();
-    document.getElementById('task-time').value = data && data.time ? data.time : '';
-    document.getElementById('task-time-end').value = data && data.timeEnd ? data.timeEnd : '';
     document.getElementById('task-recurrence').value = data && data.recurrence ? data.recurrence : '';
     document.getElementById('task-reminder').value = data && data.reminder ? data.reminder : '15';
     document.getElementById('modal-error').textContent = '';
@@ -296,8 +294,6 @@ function openEditTaskModal(task) {
     document.getElementById('task-priority').value = task.priority || 'medium';
     document.getElementById('task-status').value = task.status || 'new';
     document.getElementById('task-date').value = task.date || todayStr();
-    document.getElementById('task-time').value = task.time || '';
-    document.getElementById('task-time-end').value = task.timeEnd || '';
     document.getElementById('task-recurrence').value = task.recurrence || '';
     document.getElementById('task-reminder').value = task.reminder || '15';
     document.getElementById('modal-error').textContent = '';
@@ -333,7 +329,6 @@ function saveTask() {
     const priority = document.getElementById('task-priority').value;
     const status = document.getElementById('task-status').value;
     const date = document.getElementById('task-date').value;
-    const time = document.getElementById('task-time').value;
     const errorEl = document.getElementById('modal-error');
 
     if (!name) { errorEl.textContent = '❌ يرجى إدخال اسم المهمة'; return; }
@@ -344,8 +339,7 @@ function saveTask() {
         name, desc: desc || '',
         type, project,
         priority, status,
-        date, time: time || '',
-        timeEnd: document.getElementById('task-time-end').value || '',
+        date,
         recurrence: document.getElementById('task-recurrence').value || '',
         reminder: document.getElementById('task-reminder').value || '',
         archived: false,
@@ -381,6 +375,29 @@ function toggleTaskComplete(taskId) {
     if (newStatus === 'completed' && task.recurrence) {
         handleRecurringTask(task);
     }
+}
+
+function startTask(taskId) {
+    getTaskDocRef(taskId).update({
+        startTime: new Date().toISOString(),
+        status: 'in_progress'
+    });
+    showToast('▶️ تم بدء المهمة', 'success');
+}
+
+function finishTask(taskId) {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+    const update = {
+        endTime: new Date().toISOString(),
+        status: 'completed',
+        completedAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    getTaskDocRef(taskId).update(update);
+    if (task.recurrence) {
+        handleRecurringTask(task);
+    }
+    showToast('✅ تم إنهاء المهمة', 'success');
 }
 
 function deleteTask(taskId) {
@@ -870,6 +887,21 @@ function createTaskHTML(task) {
     const priorityLabel = { high: 'عالية', medium: 'متوسطة', low: 'منخفضة' };
     const statusLabel = { new: 'جديدة', in_progress: 'جاري التنفيذ', completed: 'مكتملة' };
     const isOverdue = task.date < todayStr() && task.status !== 'completed';
+    const isStarted = !!task.startTime;
+    const isFinished = !!task.endTime;
+    let timeBadge = '';
+    if (isFinished && task.startTime && task.endTime) {
+        const dur = Math.round((new Date(task.endTime) - new Date(task.startTime)) / 60000);
+        const h = Math.floor(dur / 60);
+        const m = dur % 60;
+        timeBadge = '<span class="type-badge" style="background:#e8f5e9;color:#2e7d32;">' + (h > 0 ? h + 'س ' : '') + m + 'د</span>';
+    } else if (isStarted) {
+        timeBadge = '<span class="type-badge" style="background:#fff3e0;color:#e65100;">جاري التنفيذ</span>';
+    }
+    const actionBtns = task.status === 'completed' ? '' :
+        !isStarted ?
+            '<button class="task-action-btn start-btn" onclick="event.stopPropagation();startTask(\'' + task.id + '\')" title="ابدأ"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg></button>' :
+            '<button class="task-action-btn finish-btn" onclick="event.stopPropagation();finishTask(\'' + task.id + '\')" title="أنهِ"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect></svg></button>';
     return `<div class="task-item ${task.status === 'completed' ? 'completed' : ''} ${isOverdue ? 'overdue' : ''}">
         <div class="task-check ${task.status === 'completed' ? 'done' : ''}" onclick="toggleTaskComplete('${task.id}')">
             ${task.status === 'completed' ? '✓' : ''}
@@ -882,12 +914,13 @@ function createTaskHTML(task) {
                 <span class="status-badge status-${task.status}">${statusLabel[task.status]}</span>
                 ${task.project ? '<span class="type-badge" style="background:#fef3c7;color:#92400e;">' + task.project + '</span>' : ''}
                 ${task.date ? '<span class="type-badge" style="background:#f0f0f0;color:#555;">' + task.date + '</span>' : ''}
-                ${task.time ? '<span class="type-badge" style="background:#f0f0f0;color:#555;">' + formatTime12(task.time) + (task.timeEnd ? ' → ' + formatTime12(task.timeEnd) : '') + '</span>' : ''}
+                ${timeBadge}
                 ${task.recurrence ? '<span class="type-badge" style="background:#ede9ff;color:#7c3aed;">' + getRecurrenceLabel(task.recurrence) + '</span>' : ''}
                 ${isOverdue ? '<span class="priority-badge priority-high">متأخرة</span>' : ''}
             </div>
         </div>
         <div class="task-actions">
+            ${actionBtns}
             <button class="icon-btn" onclick="event.stopPropagation();duplicateTask('${task.id}')" title="نسخ"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></button>
             <button class="icon-btn" onclick="event.stopPropagation();archiveTask('${task.id}')" title="أرشفة"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"></polyline><rect x="1" y="3" width="22" height="5"></rect><line x1="10" y1="12" x2="14" y2="12"></line></svg></button>
             <button class="icon-btn" onclick="event.stopPropagation();deleteTask('${task.id}')" title="حذف"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
