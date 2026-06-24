@@ -69,7 +69,6 @@ function initApp() {
     setupDailyReminder();
     requestNotificationPermission();
     startTaskTimeChecker();
-    loadHabits();
 }
 
 // ==================== التنقل ====================
@@ -86,7 +85,6 @@ function navigate(page, params) {
     if (page === 'calendar') renderCalendar();
     if (page === 'projects') renderProjects();
     if (page === 'events') renderEvents();
-    if (page === 'habits') loadHabits();
     if (page === 'stats') renderStats();
     if (page === 'search') document.getElementById('global-search-input').focus();
     if (page === 'archive') renderArchive();
@@ -773,82 +771,6 @@ function setupReminders() {
     });
 }
 function today() { return new Date().toISOString().slice(0, 10); }
-
-// ==================== العادات ====================
-let habitsData = [];
-let habitsOffset = 0;
-
-function openAddHabitModal() {
-    const name = prompt('اسم العادة الجديدة:');
-    if (!name || !name.trim()) return;
-    const habit = { id: Date.now().toString(), name: name.trim(), createdAt: new Date().toISOString(), completions: {} };
-    db.collection('users').doc(currentUser.uid).collection('habits').add(habit)
-        .then(() => { loadHabits(); showToast('✅ تمت إضافة العادة', 'success'); })
-        .catch(err => showToast('❌ ' + err.message, 'error'));
-}
-
-function loadHabits() {
-    if (!currentUser) return;
-    db.collection('users').doc(currentUser.uid).collection('habits').get().then(snap => {
-        habitsData = [];
-        snap.forEach(doc => habitsData.push({ id: doc.id, ...doc.data() }));
-        renderHabits();
-    });
-}
-
-function toggleHabitDay(habitId, dateStr) {
-    const habit = habitsData.find(h => h.id === habitId);
-    if (!habit) return;
-    if (!habit.completions) habit.completions = {};
-    habit.completions[dateStr] = !habit.completions[dateStr];
-    db.collection('users').doc(currentUser.uid).collection('habits').doc(habitId).update({ completions: habit.completions });
-    renderHabits();
-}
-
-function deleteHabit(habitId) {
-    if (!confirm('حذف هذه العادة؟')) return;
-    db.collection('users').doc(currentUser.uid).collection('habits').doc(habitId).delete()
-        .then(() => { habitsData = habitsData.filter(h => h.id !== habitId); renderHabits(); });
-}
-
-function switchHabitsDate(offset) {
-    habitsOffset = offset === 0 ? 0 : habitsOffset + offset;
-    if (habitsOffset > 0) habitsOffset = 0;
-    renderHabits();
-}
-
-function renderHabits() {
-    const d = new Date();
-    d.setDate(d.getDate() + habitsOffset);
-    const dateStr = d.toISOString().slice(0, 10);
-    const days = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
-    const months = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
-    document.getElementById('habits-date-label').textContent = days[d.getDay()] + ' ' + d.getDate() + ' ' + months[d.getMonth()] + ' ' + d.getFullYear();
-    document.getElementById('habits-today-btn').className = habitsOffset === 0 ? 'chip active' : 'chip';
-    const listEl = document.getElementById('habits-list');
-    if (!habitsData.length) {
-        listEl.innerHTML = '<p class="empty-msg">لا توجد عادات بعد. أضف عادة جديدة!</p>';
-        return;
-    }
-    listEl.innerHTML = habitsData.map(h => {
-        const done = h.completions && h.completions[dateStr];
-        let streak = 0;
-        const checkDate = new Date(d);
-        for (let i = 0; i < 365; i++) {
-            const ds = checkDate.toISOString().slice(0, 10);
-            if (h.completions && h.completions[ds]) { streak++; checkDate.setDate(checkDate.getDate() - 1); }
-            else break;
-        }
-        return `<div class="habit-item">
-            <div class="habit-check ${done ? 'done' : ''}" onclick="toggleHabitDay('${h.id}','${dateStr}')">${done ? '✓' : ''}</div>
-            <div class="habit-info">
-                <div class="habit-name">${h.name}</div>
-                <div class="habit-streak">${streak > 0 ? '🔥 ' + streak + ' أيام متتالية' : 'لم يكمل بعد'}</div>
-            </div>
-            <div class="habit-delete" onclick="deleteHabit('${h.id}')">🗑️</div>
-        </div>`;
-    }).join('');
-}
 
 // ==================== الإحصائيات ====================
 function renderStats() {

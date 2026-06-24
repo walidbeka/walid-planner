@@ -17,7 +17,7 @@
     </script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-functions-compat.js">
     </script>
-    <link rel="stylesheet" href="style.css?v=6">
+    <link rel="stylesheet" href="style.css?v=7">
 </head>
 <body>
     <!-- ==================== شاشة تسجيل الدخول ==================== -->
@@ -102,10 +102,6 @@
                 <button class="nav-btn" data-page="events" onclick="navigate('events')">
                     <span class="nav-icon">🎉</span>
                     <span>الأعياد والمناسبات</span>
-                </button>
-                <button class="nav-btn" data-page="habits" onclick="navigate('habits')">
-                    <span class="nav-icon">✅</span>
-                    <span>العادات</span>
                 </button>
                 <button class="nav-btn" data-page="stats" onclick="navigate('stats')">
                     <span class="nav-icon">📊</span>
@@ -341,25 +337,6 @@
                 <div id="events-list" class="events-list"></div>
             </section>
 
-            <!-- ======== صفحة العادات ======== -->
-            <section id="page-habits" class="page">
-                <div class="page-header">
-                    <h1>✅ تتبع العادات</h1>
-                    <button class="btn btn-sm btn-primary" onclick="openAddHabitModal()">+ عادة جديدة</button>
-                </div>
-                <div class="events-filters" style="margin-bottom:12px">
-                    <button class="chip active" id="habits-today-btn" onclick="switchHabitsDate(0)">اليوم</button>
-                    <button class="chip" id="habits-prev-btn" onclick="switchHabitsDate(-1)">◀ أمس</button>
-                    <button class="chip" id="habits-next-btn" onclick="switchHabitsDate(1)">غداً ▶</button>
-                </div>
-                <div id="habits-date-label" style="font-size:13px;color:var(--text-muted);margin-bottom:12px"></div>
-                <div id="habits-list" class="habits-grid"></div>
-                <div id="habits-stats" class="card" style="margin-top:16px;display:none">
-                    <div class="card-header"><h3>📈 إحصائيات العادات</h3></div>
-                    <div id="habits-stats-content"></div>
-                </div>
-            </section>
-
             <!-- ======== صفحة الإحصائيات ======== -->
             <section id="page-stats" class="page">
                 <div class="page-header">
@@ -583,6 +560,6 @@
     <div id="toast-container" class="toast-container"></div>
 
     <script src="firebase-config.js?v=7"></script>
-    <script src="app.js?v=38"></script>
+    <script src="app.js?v=39"></script>
 </body>
 </html>
