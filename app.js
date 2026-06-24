@@ -407,6 +407,14 @@ function duplicateTask(taskId) {
     showToast('📋 تم نسخ المهمة', 'success');
 }
 
+function formatTime12(time24) {
+    if (!time24) return '';
+    const [h, m] = time24.split(':').map(Number);
+    const period = h >= 12 ? 'مساءً' : 'صباحاً';
+    const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+    return h12 + ':' + String(m).padStart(2, '0') + ' ' + period;
+}
+
 function todayStr() {
     const d = new Date();
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
@@ -692,7 +700,7 @@ function createTaskHTML(task) {
                 <span class="status-badge status-${task.status}">${statusLabel[task.status]}</span>
                 ${task.project ? '<span class="type-badge" style="background:#fef3c7;color:#92400e;">📁 ' + task.project + '</span>' : ''}
                 ${task.date ? '<span class="type-badge" style="background:#f0f0f0;color:#555;">📅 ' + task.date + '</span>' : ''}
-                ${task.time ? '<span class="type-badge" style="background:#f0f0f0;color:#555;">⏰ ' + task.time + '</span>' : ''}
+                ${task.time ? '<span class="type-badge" style="background:#f0f0f0;color:#555;">⏰ ' + formatTime12(task.time) + '</span>' : ''}
                 ${isOverdue ? '<span class="priority-badge priority-high">🔴 متأخرة</span>' : ''}
             </div>
         </div>
@@ -1145,7 +1153,7 @@ function buildTasksSummary() {
             body += '   ├ الأولوية: ' + p + '\n';
             body += '   ├ النوع: ' + type + '\n';
             if (t.project) body += '   ├ المشروع: ' + t.project + '\n';
-            if (t.time) body += '   └ الوقت: ' + t.time + '\n';
+            if (t.time) body += '   └ الوقت: ' + formatTime12(t.time) + '\n';
             else body += '   └───────────\n';
             if (i < todayTasks.length - 1) body += '\n';
         });

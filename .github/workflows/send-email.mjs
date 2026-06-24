@@ -59,6 +59,13 @@ function statusLabel(s) {
   const m = { new: 'جديدة', 'in-progress': 'قيد التنفيذ' };
   return m[s] || s;
 }
+function formatTime12(t) {
+  if (!t) return '';
+  const [h, m] = t.split(':').map(Number);
+  const p = h >= 12 ? 'مساءً' : 'صباحاً';
+  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return h12 + ':' + String(m).padStart(2, '0') + ' ' + p;
+}
 
 function buildHtml(todayTasks, overdueTasks) {
   const now = new Date();
@@ -78,7 +85,7 @@ function buildHtml(todayTasks, overdueTasks) {
             <span style="background:#6366f122;color:#6366f1;padding:3px 10px;border-radius:20px;">${typeLabel(t.type)}</span>
           </td>
           <td style="padding:12px 16px;border-bottom:1px solid #f0f0f0;font-size:13px;color:#666;">${t.project || '—'}</td>
-          <td style="padding:12px 16px;border-bottom:1px solid #f0f0f0;font-size:13px;color:#666;">${t.time || '—'}</td>
+          <td style="padding:12px 16px;border-bottom:1px solid #f0f0f0;font-size:13px;color:#666;">${formatTime12(t.time) || '—'}</td>
         </tr>`;
     });
   }
