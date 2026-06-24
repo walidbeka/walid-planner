@@ -680,32 +680,33 @@ body {
 .home-clock-box .clock-time { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; direction: ltr; color: var(--primary); }
 
 /* === الصفحة الرئيسية === */
-.home-content-grid { display: flex; flex-direction: column; gap: 16px; }
-.home-main { min-width: 0; }
-.home-sidebar { }
-.home-sections { display: flex; flex-direction: column; gap: 12px; }
+.home-sections { display: grid; grid-template-columns: 1fr; gap: 12px; }
 .home-greeting { font-size: 24px; font-weight: 700; margin-bottom: 2px; }
 .home-date-sub { font-size: 14px; color: var(--text-secondary); margin-bottom: 16px; }
 
 /* === موبايل === */
 @media (max-width: 767px) {
     .notif-panel { position: fixed; top: calc(var(--top-bar-height) + 4px); left: 8px; right: 8px; width: auto; max-width: none; }
+    .stats-grid { grid-template-columns: 1fr 1fr; }
 }
 
-/* === شاشات كبيرة === */
+/* === تابلت === */
 @media (min-width: 768px) {
     .sidebar { right: 0 !important; position: fixed; }
     .sidebar-overlay { display: none !important; }
-    .main-content { margin-right: var(--sidebar-width); padding-top: calc(var(--top-bar-height) + 24px); padding-left: 24px; padding-right: 24px; max-width: 100%; }
+    .main-content { margin-right: var(--sidebar-width); padding-top: calc(var(--top-bar-height) + 24px); padding-left: 24px; padding-right: 24px; }
     .top-bar { right: var(--sidebar-width); left: 0; }
     .fab { left: 28px; bottom: 28px; }
     .stats-grid { grid-template-columns: repeat(4, 1fr); }
-    .home-sections { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .home-content-grid { display: grid; grid-template-columns: 1fr 300px; gap: 20px; align-items: start; }
-    .home-sidebar { position: sticky; top: calc(var(--top-bar-height) + 24px); }
+    .home-sections { grid-template-columns: 1fr 1fr; }
     .modal-overlay { align-items: center; }
     .modal { border-radius: var(--radius-lg); border: 1px solid var(--border); border-bottom: 1px solid var(--border); }
     .toast-container { left: auto; right: calc(var(--sidebar-width) + 16px); }
+}
+
+/* === لابتوب === */
+@media (min-width: 1024px) {
+    .main-content { max-width: 960px; }
 }
 
 /* === أنيميشن المهام === */
@@ -743,9 +744,6 @@ body {
 .tasks-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
 .tasks-actions-top { display: flex; gap: 8px; }
 
-@media (min-width: 1024px) {
-    .main-content { max-width: 100%; }
-    .home-content-grid { display: grid; grid-template-columns: 1fr 320px; gap: 20px; align-items: start; }
-    .home-main { min-width: 0; }
-    .home-sidebar { position: sticky; top: calc(var(--top-bar-height) + 24px); }
+@media (min-width: 1200px) {
+    .main-content { max-width: 960px; }
 }
