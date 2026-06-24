@@ -81,7 +81,7 @@ function navigate(page, params) {
     if (navBtn) navBtn.classList.add('active');
     closeSidebar();
     if (page === 'home') renderHome();
-    if (page === 'tasks') { renderTasks(); if (params && params.filter) filterTasks(params.filter); }
+    if (page === 'tasks') { renderTasks(); if (params && params.filter) filterTasks(params.filter); if (params && params.project) filterByProject(params.project); }
     if (page === 'calendar') renderCalendar();
     if (page === 'projects') renderProjects();
     if (page === 'events') renderEvents();
@@ -1200,12 +1200,16 @@ function switchProjectTab(tab) {
 
 function filterByProject(project) {
     navigate('tasks');
-    currentFilter = 'all';
-    document.querySelectorAll('#task-filters .chip').forEach(c => c.classList.remove('active'));
-    document.querySelector('#task-filters .chip[data-filter="all"]').classList.add('active');
-    const filtered = tasks.filter(t => !t.archived && t.project === project);
-    renderTasksList(filtered);
-    document.getElementById('task-search-input').value = '';
+    setTimeout(() => {
+        document.querySelectorAll('#task-filters .chip').forEach(c => c.classList.remove('active'));
+        document.querySelector('#task-filters .chip[data-filter="all"]').classList.add('active');
+        const filtered = tasks.filter(t => !t.archived && t.project === project);
+        const listView = document.getElementById('tasks-list-view');
+        listView.innerHTML = filtered.length ? filtered.map(t => createTaskHTML(t)).join('') : '<p class="empty-msg">لا توجد مهام في هذا المشروع</p>';
+        listView.style.display = 'block';
+        document.getElementById('tasks-kanban-view').style.display = 'none';
+        document.getElementById('task-search-input').value = '';
+    }, 50);
 }
 
 // ==================== العملاء ====================
