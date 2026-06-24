@@ -81,7 +81,7 @@ function navigate(page, params) {
     if (navBtn) navBtn.classList.add('active');
     closeSidebar();
     if (page === 'home') renderHome();
-    if (page === 'tasks') { renderTasks(); if (params && params.filter) filterTasks(params.filter); if (params && params.project) filterByProject(params.project); }
+    if (page === 'tasks') { if (!params?.project) currentProjectFilter = ''; renderTasks(); if (params && params.filter) filterTasks(params.filter); }
     if (page === 'calendar') renderCalendar();
     if (page === 'projects') renderProjects();
     if (page === 'events') renderEvents();
@@ -464,6 +464,7 @@ function todayStr() {
 // ==================== التصفية والعرض ====================
 function filterTasks(filter) {
     currentFilter = filter;
+    currentProjectFilter = '';
     document.querySelectorAll('#task-filters .chip').forEach(c => c.classList.remove('active'));
     document.querySelector(`#task-filters .chip[data-filter="${filter}"]`).classList.add('active');
     if (filter !== 'advanced') {
@@ -524,6 +525,9 @@ function setTaskView(view) {
 
 function getFilteredTasks() {
     let filtered = tasks.filter(t => !t.archived);
+    if (currentProjectFilter) {
+        filtered = filtered.filter(t => t.project === currentProjectFilter);
+    }
     const now = new Date();
     const today = todayStr();
     switch (currentFilter) {
@@ -1198,17 +1202,14 @@ function switchProjectTab(tab) {
     document.getElementById('projects-' + tab).classList.add('active');
 }
 
+let currentProjectFilter = '';
+
 function filterByProject(project) {
+    currentProjectFilter = project;
     navigate('tasks');
     setTimeout(() => {
         document.querySelectorAll('#task-filters .chip').forEach(c => c.classList.remove('active'));
-        document.querySelector('#task-filters .chip[data-filter="all"]').classList.add('active');
-        const filtered = tasks.filter(t => !t.archived && t.project === project);
-        const listView = document.getElementById('tasks-list-view');
-        listView.innerHTML = filtered.length ? filtered.map(t => createTaskHTML(t)).join('') : '<p class="empty-msg">لا توجد مهام في هذا المشروع</p>';
-        listView.style.display = 'block';
-        document.getElementById('tasks-kanban-view').style.display = 'none';
-        document.getElementById('task-search-input').value = '';
+        renderTasks();
     }, 50);
 }
 
