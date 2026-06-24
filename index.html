@@ -17,7 +17,7 @@
     </script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-functions-compat.js">
     </script>
-    <link rel="stylesheet" href="style.css?v=8">
+    <link rel="stylesheet" href="style.css?v=9">
 </head>
 <body>
     <!-- ==================== شاشة تسجيل الدخول ==================== -->
@@ -45,16 +45,16 @@
     <div id="app" class="app" style="display:none">
         <!-- الشريط العلوي -->
         <header class="top-bar" id="top-bar">
-            <button class="icon-btn" onclick="toggleSidebar()" id="menu-toggle" aria-label="القائمة">☰</button>
+            <button class="icon-btn" onclick="toggleSidebar()" id="menu-toggle" aria-label="القائمة"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg></button>
             <div class="top-bar-title">
                 <span class="top-bar-icon">📋</span>
                 <span>Walid Planner</span>
             </div>
             <div class="top-bar-actions">
-                <button class="icon-btn" onclick="toggleTheme()" id="theme-toggle" aria-label="الوضع الليلي">🌙</button>
+                <button class="icon-btn" onclick="toggleTheme()" id="theme-toggle" aria-label="الوضع الليلي"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg></button>
                 <div class="notif-wrapper">
                     <button class="icon-btn" id="notification-bell" onclick="showNotificationPanel()" aria-label="الإشعارات">
-                        🔔
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
                         <span id="notif-badge" class="badge" style="display:none">0</span>
                     </button>
                     <div class="notif-panel" id="notif-panel">
@@ -67,7 +67,7 @@
                         </div>
                     </div>
                 </div>
-                <button class="icon-btn" onclick="signOut()" aria-label="تسجيل الخروج">🚪</button>
+                <button class="icon-btn" onclick="signOut()" aria-label="تسجيل الخروج"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg></button>
             </div>
         </header>
 
@@ -84,39 +84,39 @@
             </div>
             <div class="sidebar-menu">
                 <button class="nav-btn active" data-page="home" onclick="navigate('home')">
-                    <span class="nav-icon">🏠</span>
+                    <span class="nav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg></span>
                     <span>الرئيسية</span>
                 </button>
                 <button class="nav-btn" data-page="tasks" onclick="navigate('tasks')">
-                    <span class="nav-icon">📋</span>
+                    <span class="nav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg></span>
                     <span>جميع المهام</span>
                 </button>
                 <button class="nav-btn" data-page="calendar" onclick="navigate('calendar')">
-                    <span class="nav-icon">📅</span>
+                    <span class="nav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg></span>
                     <span>التقويم</span>
                 </button>
                 <button class="nav-btn" data-page="projects" onclick="navigate('projects')">
-                    <span class="nav-icon">📁</span>
+                    <span class="nav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg></span>
                     <span>المشاريع</span>
                 </button>
                 <button class="nav-btn" data-page="events" onclick="navigate('events')">
-                    <span class="nav-icon">🎉</span>
+                    <span class="nav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"></path><path d="M16 2v4"></path><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="10" x2="21" y2="10"></line><path d="M8 14h.01"></path><path d="M12 14h.01"></path><path d="M16 14h.01"></path><path d="M8 18h.01"></path><path d="M12 18h.01"></path></svg></span>
                     <span>الأعياد والمناسبات</span>
                 </button>
                 <button class="nav-btn" data-page="stats" onclick="navigate('stats')">
-                    <span class="nav-icon">📊</span>
+                    <span class="nav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg></span>
                     <span>الإحصائيات</span>
                 </button>
                 <button class="nav-btn" data-page="search" onclick="navigate('search')">
-                    <span class="nav-icon">🔍</span>
+                    <span class="nav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></span>
                     <span>بحث</span>
                 </button>
                 <button class="nav-btn" data-page="archive" onclick="navigate('archive')">
-                    <span class="nav-icon">🗄️</span>
+                    <span class="nav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"></polyline><rect x="1" y="3" width="22" height="5"></rect><line x1="10" y1="12" x2="14" y2="12"></line></svg></span>
                     <span>الأرشيف</span>
                 </button>
                 <button class="nav-btn" data-page="settings" onclick="navigate('settings')">
-                    <span class="nav-icon">⚙️</span>
+                    <span class="nav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></span>
                     <span>الإعدادات</span>
                 </button>
             </div>
@@ -442,7 +442,7 @@
         </main>
 
         <!-- ==================== زر الإضافة السريع ==================== -->
-        <button class="fab" onclick="openAddTaskModal()" id="fab" aria-label="إضافة مهمة">+</button>
+        <button class="fab" onclick="openAddTaskModal()" id="fab" aria-label="إضافة مهمة"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></button>
 
     </div>
 
@@ -499,9 +499,13 @@
                         <input type="date" id="task-date">
                     </div>
                     <div class="form-group">
-                        <label>وقت التنفيذ</label>
+                        <label>وقت البداية</label>
+                        <input type="time" id="task-time">
+                    </div>
+                    <div class="form-group">
+                        <label>وقت النهاية</label>
                         <div style="display:flex;gap:6px;align-items:center">
-                            <input type="time" id="task-time" style="flex:1">
+                            <input type="time" id="task-time-end" style="flex:1">
                             <button type="button" class="voice-btn" id="voice-btn" onclick="startVoiceInput()" title="إدخال صوتي">🎤</button>
                         </div>
                     </div>
@@ -560,6 +564,6 @@
     <div id="toast-container" class="toast-container"></div>
 
     <script src="firebase-config.js?v=7"></script>
-    <script src="app.js?v=39"></script>
+    <script src="app.js?v=40"></script>
 </body>
 </html>

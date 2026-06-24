@@ -275,6 +275,7 @@ function openAddTaskModal(data) {
     document.getElementById('task-status').value = 'new';
     document.getElementById('task-date').value = data && data.date ? data.date : todayStr();
     document.getElementById('task-time').value = data && data.time ? data.time : '';
+    document.getElementById('task-time-end').value = data && data.timeEnd ? data.timeEnd : '';
     document.getElementById('task-recurrence').value = data && data.recurrence ? data.recurrence : '';
     document.getElementById('task-reminder').value = data && data.reminder ? data.reminder : '15';
     document.getElementById('modal-error').textContent = '';
@@ -296,6 +297,7 @@ function openEditTaskModal(task) {
     document.getElementById('task-status').value = task.status || 'new';
     document.getElementById('task-date').value = task.date || todayStr();
     document.getElementById('task-time').value = task.time || '';
+    document.getElementById('task-time-end').value = task.timeEnd || '';
     document.getElementById('task-recurrence').value = task.recurrence || '';
     document.getElementById('task-reminder').value = task.reminder || '15';
     document.getElementById('modal-error').textContent = '';
@@ -343,10 +345,10 @@ function saveTask() {
         type, project,
         priority, status,
         date, time: time || '',
+        timeEnd: document.getElementById('task-time-end').value || '',
         recurrence: document.getElementById('task-recurrence').value || '',
         reminder: document.getElementById('task-reminder').value || '',
         archived: false,
-        timeTracked: 0,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     };
 
@@ -410,6 +412,7 @@ function duplicateTask(taskId) {
         status: 'new',
         date: todayStr(),
         time: task.time || '',
+        timeEnd: task.timeEnd || '',
         archived: false,
         completedAt: null,
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -684,38 +687,6 @@ function startVoiceInput() {
     recognition.start();
 }
 
-// ==================== تتبع الوقت ====================
-let activeTimers = {};
-
-function toggleTimeTracker(taskId) {
-    if (activeTimers[taskId]) {
-        clearInterval(activeTimers[taskId].interval);
-        const elapsed = activeTimers[taskId].elapsed;
-        delete activeTimers[taskId];
-        const ref = db.collection('users').doc(currentUser.uid).collection('tasks').doc(taskId);
-        ref.get().then(doc => {
-            const current = doc.data().timeTracked || 0;
-            ref.update({ timeTracked: current + elapsed });
-        });
-        renderTasks();
-        showToast('⏹️ تم إيقاف التتبع', 'success');
-    } else {
-        let elapsed = 0;
-        const interval = setInterval(() => { elapsed += 1; }, 1000);
-        activeTimers[taskId] = { interval, elapsed, start: Date.now() };
-        renderTasks();
-        showToast('▶️ بدأ التتبع', 'success');
-    }
-}
-
-function formatTimeTracked(seconds) {
-    if (!seconds) return '0د';
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    if (h > 0) return h + 'س ' + m + 'د';
-    return m + 'د';
-}
-
 // ==================== المهام المتكررة ====================
 function handleRecurringTask(task) {
     if (!task.recurrence || task.status !== 'completed') return;
@@ -728,7 +699,6 @@ function handleRecurringTask(task) {
     newTask.date = nextDate;
     newTask.status = 'new';
     newTask.completedAt = null;
-    newTask.timeTracked = 0;
     db.collection('users').doc(currentUser.uid).collection('tasks').add(newTask);
 }
 
@@ -778,13 +748,11 @@ function renderStats() {
     const completed = tasks.filter(t => t.status === 'completed');
     const active = tasks.filter(t => t.status !== 'completed' && !t.archived);
     const overdue = tasks.filter(t => t.date < today && t.status !== 'completed' && !t.archived);
-    const totalTime = tasks.reduce((s, t) => s + (t.timeTracked || 0), 0);
 
     document.getElementById('stats-overview').innerHTML = `
         <div class="stat-card"><div class="stat-number">${active.length}</div><div class="stat-label">مهام نشطة</div></div>
         <div class="stat-card"><div class="stat-number">${completed.length}</div><div class="stat-label">مكتملة</div></div>
         <div class="stat-card"><div class="stat-number">${overdue.length}</div><div class="stat-label">متأخرة</div></div>
-        <div class="stat-card"><div class="stat-number">${formatTimeTracked(totalTime)}</div><div class="stat-label">وقت تتبع</div></div>
     `;
 
     const weeklyData = [];
@@ -902,17 +870,15 @@ function createTaskHTML(task) {
                 <span class="status-badge status-${task.status}">${statusLabel[task.status]}</span>
                 ${task.project ? '<span class="type-badge" style="background:#fef3c7;color:#92400e;">📁 ' + task.project + '</span>' : ''}
                 ${task.date ? '<span class="type-badge" style="background:#f0f0f0;color:#555;">📅 ' + task.date + '</span>' : ''}
-                ${task.time ? '<span class="type-badge" style="background:#f0f0f0;color:#555;">⏰ ' + formatTime12(task.time) + '</span>' : ''}
+                ${task.time ? '<span class="type-badge" style="background:#f0f0f0;color:#555;">⏰ ' + formatTime12(task.time) + (task.timeEnd ? ' → ' + formatTime12(task.timeEnd) : '') + '</span>' : ''}
                 ${task.recurrence ? '<span class="type-badge" style="background:#ede9ff;color:#7c3aed;">' + getRecurrenceLabel(task.recurrence) + '</span>' : ''}
                 ${isOverdue ? '<span class="priority-badge priority-high">🔴 متأخرة</span>' : ''}
             </div>
         </div>
         <div class="task-actions">
-            <button class="timer-btn ${activeTimers[task.id] ? 'running' : ''}" onclick="event.stopPropagation();toggleTimeTracker('${task.id}')" title="تتبع الوقت">${activeTimers[task.id] ? '⏹️' : '▶️'}</button>
-            ${task.timeTracked ? '<span class="type-badge" style="background:#e5faf0;color:#16a34a;font-size:11px;">⏱ ' + formatTimeTracked(task.timeTracked) + '</span>' : ''}
-            <button class="icon-btn" onclick="event.stopPropagation();duplicateTask('${task.id}')" title="نسخ">📋</button>
-            <button class="icon-btn" onclick="event.stopPropagation();archiveTask('${task.id}')" title="أرشفة">📦</button>
-            <button class="icon-btn" onclick="event.stopPropagation();deleteTask('${task.id}')" title="حذف">🗑️</button>
+            <button class="icon-btn" onclick="event.stopPropagation();duplicateTask('${task.id}')" title="نسخ"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></button>
+            <button class="icon-btn" onclick="event.stopPropagation();archiveTask('${task.id}')" title="أرشفة"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"></polyline><rect x="1" y="3" width="22" height="5"></rect><line x1="10" y1="12" x2="14" y2="12"></line></svg></button>
+            <button class="icon-btn" onclick="event.stopPropagation();deleteTask('${task.id}')" title="حذف"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
         </div>
     </div>`;
 }
@@ -1212,7 +1178,9 @@ function toggleTheme() {
     const newTheme = isDark ? 'light' : 'dark';
     document.documentElement.setAttribute('data-theme', newTheme);
     localStorage.setItem('wp_theme', newTheme);
-    document.getElementById('theme-toggle').textContent = newTheme === 'dark' ? '☀️' : '🌙';
+    document.getElementById('theme-toggle').innerHTML = newTheme === 'dark'
+        ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>'
+        : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>';
 }
 
 function toggleThemeFromSettings() {
@@ -1220,14 +1188,16 @@ function toggleThemeFromSettings() {
     const newTheme = checked ? 'dark' : 'light';
     document.documentElement.setAttribute('data-theme', newTheme);
     localStorage.setItem('wp_theme', newTheme);
-    document.getElementById('theme-toggle').textContent = newTheme === 'dark' ? '☀️' : '🌙';
+    document.getElementById('theme-toggle').innerHTML = newTheme === 'dark'
+        ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>'
+        : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>';
 }
 
 function applySavedTheme() {
     const saved = localStorage.getItem('wp_theme');
     if (saved === 'dark') {
         document.documentElement.setAttribute('data-theme', 'dark');
-        document.getElementById('theme-toggle').textContent = '☀️';
+        document.getElementById('theme-toggle').innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>';
     }
 }
 
@@ -1359,7 +1329,7 @@ function buildTasksSummary() {
             body += '   ├ الأولوية: ' + p + '\n';
             body += '   ├ النوع: ' + type + '\n';
             if (t.project) body += '   ├ المشروع: ' + t.project + '\n';
-            if (t.time) body += '   └ الوقت: ' + formatTime12(t.time) + '\n';
+            if (t.time) body += '   └ الوقت: ' + formatTime12(t.time) + (t.timeEnd ? ' → ' + formatTime12(t.timeEnd) : '') + '\n';
             else body += '   └───────────\n';
             if (i < todayTasks.length - 1) body += '\n';
         });
