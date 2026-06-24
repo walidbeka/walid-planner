@@ -826,16 +826,15 @@ function renderTasks() {
 
 function renderKanban(tasksList) {
     const statuses = [
-        { key: 'new', label: 'جديدة', icon: '🆕' },
-        { key: 'in_progress', label: 'جاري التنفيذ', icon: '🔄' },
-        { key: 'completed', label: 'مكتملة', icon: '✅' },
+        { key: 'new', label: 'جديدة' },
+        { key: 'in_progress', label: 'جاري التنفيذ' },
+        { key: 'completed', label: 'مكتملة' },
     ];
     const board = document.getElementById('tasks-kanban-view');
     board.innerHTML = statuses.map(s => {
         const items = tasksList.filter(t => t.status === s.key);
         return `<div class="kanban-col">
             <div class="kanban-col-header">
-                <span>${s.icon}</span>
                 <span>${s.label}</span>
                 <span class="count">${items.length}</span>
             </div>
@@ -865,14 +864,14 @@ function createTaskHTML(task) {
         <div class="task-content" onclick="openEditTaskModal(tasks.find(t => t.id === '${task.id}'))">
             <div class="task-text">${task.name}</div>
             <div class="task-meta">
-                <span class="type-badge type-${task.type}">${task.type === 'work' ? '💼 عمل' : '🏠 شخصي'}</span>
+                <span class="type-badge type-${task.type}">${task.type === 'work' ? 'عمل' : 'شخصي'}</span>
                 <span class="priority-badge priority-${task.priority}">${priorityLabel[task.priority]}</span>
                 <span class="status-badge status-${task.status}">${statusLabel[task.status]}</span>
-                ${task.project ? '<span class="type-badge" style="background:#fef3c7;color:#92400e;">📁 ' + task.project + '</span>' : ''}
-                ${task.date ? '<span class="type-badge" style="background:#f0f0f0;color:#555;">📅 ' + task.date + '</span>' : ''}
-                ${task.time ? '<span class="type-badge" style="background:#f0f0f0;color:#555;">⏰ ' + formatTime12(task.time) + (task.timeEnd ? ' → ' + formatTime12(task.timeEnd) : '') + '</span>' : ''}
+                ${task.project ? '<span class="type-badge" style="background:#fef3c7;color:#92400e;">' + task.project + '</span>' : ''}
+                ${task.date ? '<span class="type-badge" style="background:#f0f0f0;color:#555;">' + task.date + '</span>' : ''}
+                ${task.time ? '<span class="type-badge" style="background:#f0f0f0;color:#555;">' + formatTime12(task.time) + (task.timeEnd ? ' → ' + formatTime12(task.timeEnd) : '') + '</span>' : ''}
                 ${task.recurrence ? '<span class="type-badge" style="background:#ede9ff;color:#7c3aed;">' + getRecurrenceLabel(task.recurrence) + '</span>' : ''}
-                ${isOverdue ? '<span class="priority-badge priority-high">🔴 متأخرة</span>' : ''}
+                ${isOverdue ? '<span class="priority-badge priority-high">متأخرة</span>' : ''}
             </div>
         </div>
         <div class="task-actions">
@@ -945,12 +944,12 @@ function renderHome() {
     const homeToday = document.getElementById('home-today-list');
     homeToday.innerHTML = todayTasks.length
         ? todayTasks.slice(0, 5).map(t => createTaskHTML(t)).join('')
-        : '<p class="empty-msg">لا توجد مهام اليوم 🎉</p>';
+        : '<p class="empty-msg">لا توجد مهام اليوم</p>';
 
     const homeOverdue = document.getElementById('home-overdue-list');
     homeOverdue.innerHTML = overdueTasks.length
         ? overdueTasks.slice(0, 5).map(t => createTaskHTML(t)).join('')
-        : '<p class="empty-msg">لا توجد مهام متأخرة 👍</p>';
+        : '<p class="empty-msg">لا توجد مهام متأخرة</p>';
 }
 
 function updateClock() {
@@ -1049,7 +1048,7 @@ function selectDate(dateStr) {
     const dateLabel = document.getElementById('calendar-selected-date');
 
     const d = new Date(dateStr + 'T00:00:00');
-    dateLabel.textContent = '📅 مهام ' + d.getDate() + ' ' + MONTHS[d.getMonth()];
+    dateLabel.textContent = 'مهام ' + d.getDate() + ' ' + MONTHS[d.getMonth()];
     el.style.display = 'block';
     list.innerHTML = dayTasks.length
         ? dayTasks.map(t => createTaskHTML(t)).join('')
@@ -1086,8 +1085,8 @@ function renderProjects() {
                     <div class="project-count">${count} مهام</div>
                 </div>
                 <div class="project-card-actions">
-                    <button class="icon-btn" onclick="event.stopPropagation();startEditProjectFromPage('${p.replace(/'/g,"\\'")}','${type}')" title="تعديل">✏️</button>
-                    <button class="icon-btn" onclick="event.stopPropagation();confirmDeleteProjectFromPage('${p.replace(/'/g,"\\'")}','${type}')" title="حذف">🗑️</button>
+                    <button class="icon-btn" onclick="event.stopPropagation();startEditProjectFromPage('${p.replace(/'/g,"\\'")}','${type}')" title="تعديل"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+                    <button class="icon-btn" onclick="event.stopPropagation();confirmDeleteProjectFromPage('${p.replace(/'/g,"\\'")}','${type}')" title="حذف"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
                 </div>
             </div>
             <div class="project-edit-inline" id="edit-inline-${p.replace(/\s/g,'_')}" style="display:none">
@@ -1165,8 +1164,8 @@ function renderArchive() {
                 </div>
             </div>
             <div class="task-actions">
-                <button class="icon-btn" onclick="unarchiveTask('${task.id}')" title="إلغاء الأرشفة">📤</button>
-                <button class="icon-btn" onclick="deleteTask('${task.id}')" title="حذف">🗑️</button>
+                <button class="icon-btn" onclick="unarchiveTask('${task.id}')" title="إلغاء الأرشفة"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"></polyline><path d="M4 20L21 3"></path></svg></button>
+                <button class="icon-btn" onclick="deleteTask('${task.id}')" title="حذف"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
             </div>
         </div>`;
     }).join('');
