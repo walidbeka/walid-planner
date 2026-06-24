@@ -66,6 +66,7 @@ function initApp() {
     updateProjectsDropdown();
     loadProjects();
     loadTasks();
+    loadClients();
     setupDailyReminder();
     requestNotificationPermission();
     startTaskTimeChecker();
@@ -85,6 +86,7 @@ function navigate(page, params) {
     if (page === 'calendar') renderCalendar();
     if (page === 'projects') renderProjects();
     if (page === 'events') renderEvents();
+    if (page === 'clients') renderClients();
     if (page === 'stats') renderStats();
     if (page === 'search') document.getElementById('global-search-input').focus();
     if (page === 'archive') renderArchive();
@@ -278,6 +280,7 @@ function openAddTaskModal(data) {
     document.getElementById('task-reminder').value = data && data.reminder ? data.reminder : '15';
     document.getElementById('modal-error').textContent = '';
     updateProjectsDropdown();
+    updateClientsDropdown();
     if (data && data.project) document.getElementById('task-project').value = data.project;
     document.getElementById('task-modal').style.display = 'flex';
     setTimeout(() => document.getElementById('task-name').focus(), 100);
@@ -298,7 +301,9 @@ function openEditTaskModal(task) {
     document.getElementById('task-reminder').value = task.reminder || '15';
     document.getElementById('modal-error').textContent = '';
     updateProjectsDropdown();
+    updateClientsDropdown();
     document.getElementById('task-project').value = task.project || '';
+    document.getElementById('task-client').value = task.clientId || '';
     document.getElementById('task-modal').style.display = 'flex';
 }
 
@@ -321,6 +326,20 @@ function updateProjectsDropdown() {
     if (currentVal && projects[type].includes(currentVal)) sel.value = currentVal;
 }
 
+function updateClientsDropdown() {
+    const sel = document.getElementById('task-client');
+    if (!sel) return;
+    const currentVal = sel.value;
+    sel.innerHTML = '<option value="">بدون عميل</option>';
+    clients.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.id;
+        opt.textContent = c.name + (c.company ? ' - ' + c.company : '');
+        sel.appendChild(opt);
+    });
+    if (currentVal) sel.value = currentVal;
+}
+
 function saveTask() {
     const name = document.getElementById('task-name').value.trim();
     const desc = document.getElementById('task-desc').value.trim();
@@ -340,6 +359,7 @@ function saveTask() {
         type, project,
         priority, status,
         date,
+        clientId: document.getElementById('task-client').value || '',
         recurrence: document.getElementById('task-recurrence').value || '',
         reminder: document.getElementById('task-reminder').value || '',
         archived: false,
@@ -913,6 +933,7 @@ function createTaskHTML(task) {
                 <span class="priority-badge priority-${task.priority}">${priorityLabel[task.priority]}</span>
                 <span class="status-badge status-${task.status}">${statusLabel[task.status]}</span>
                 ${task.project ? '<span class="type-badge" style="background:#fef3c7;color:#92400e;">' + task.project + '</span>' : ''}
+                ${task.clientId ? (() => { const cl = clients.find(c => c.id === task.clientId); return cl ? '<span class="type-badge" style="background:#e7f3ff;color:#1877f2;">' + cl.name + '</span>' : ''; })() : ''}
                 ${task.date ? '<span class="type-badge" style="background:#f0f0f0;color:#555;">' + task.date + '</span>' : ''}
                 ${timeBadge}
                 ${task.recurrence ? '<span class="type-badge" style="background:#ede9ff;color:#7c3aed;">' + getRecurrenceLabel(task.recurrence) + '</span>' : ''}
@@ -1190,8 +1211,133 @@ function switchProjectTab(tab) {
 
 function filterByProject(project) {
     navigate('tasks');
-    document.getElementById('task-search-input').value = project;
-    searchInTasks(project);
+    currentFilter = 'all';
+    document.querySelectorAll('#task-filters .chip').forEach(c => c.classList.remove('active'));
+    document.querySelector('#task-filters .chip[data-filter="all"]').classList.add('active');
+    const filtered = tasks.filter(t => !t.archived && t.project === project);
+    renderTasksList(filtered);
+    document.getElementById('task-search-input').value = '';
+}
+
+// ==================== العملاء ====================
+let clients = [];
+let editingClientId = null;
+let currentClientFilter = 'all';
+
+function getClientsRef() {
+    return db.collection('users').doc(currentUser.uid).collection('clients');
+}
+
+function loadClients() {
+    getClientsRef().orderBy('createdAt', 'desc').onSnapshot(snap => {
+        clients = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        renderClients();
+    });
+}
+
+function renderClients() {
+    const el = document.getElementById('clients-list');
+    if (!el) return;
+    let filtered = clients;
+    if (currentClientFilter !== 'all') {
+        filtered = clients.filter(c => c.status === currentClientFilter);
+    }
+    if (!filtered.length) {
+        el.innerHTML = '<p class="empty-msg">لا يوجد عملاء</p>';
+        return;
+    }
+    el.innerHTML = filtered.map(c => {
+        const statusLabel = { active: 'نشط', potential: 'محتمل', inactive: 'غير نشط' };
+        const statusColor = { active: '#2e7d32', potential: '#f59e0b', inactive: '#999' };
+        const taskCount = tasks.filter(t => !t.archived && t.clientId === c.id).length;
+        return `
+        <div class="task-item" style="cursor:default">
+            <div style="width:40px;height:40px;border-radius:50%;background:${statusColor[c.status]}20;color:${statusColor[c.status]};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;flex-shrink:0">${c.name.charAt(0)}</div>
+            <div class="task-content" onclick="openEditClientModal('${c.id}')">
+                <div class="task-text">${c.name}</div>
+                <div class="task-meta">
+                    ${c.company ? '<span class="type-badge" style="background:#e7f3ff;color:#1877f2;">' + c.company + '</span>' : ''}
+                    <span class="status-badge" style="background:' + statusColor[c.status] + '20;color:' + statusColor[c.status] + '">' + statusLabel[c.status] + '</span>
+                    ${c.phone ? '<span class="type-badge" style="background:#f0f0f0;color:#555;">' + c.phone + '</span>' : ''}
+                    ${taskCount > 0 ? '<span class="type-badge" style="background:#e8f5e9;color:#2e7d32;">' + taskCount + ' مهمة</span>' : ''}
+                </div>
+            </div>
+            <div class="task-actions">
+                <button class="icon-btn" onclick="event.stopPropagation();deleteClient('${c.id}')" title="حذف"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function filterClients(filter) {
+    currentClientFilter = filter;
+    document.querySelectorAll('#client-filters .chip').forEach(c => c.classList.remove('active'));
+    document.querySelector('#client-filters .chip[data-filter="' + filter + '"]').classList.add('active');
+    renderClients();
+}
+
+function openAddClientModal() {
+    editingClientId = null;
+    document.getElementById('client-modal-title').textContent = 'إضافة عميل جديد';
+    document.getElementById('client-name').value = '';
+    document.getElementById('client-company').value = '';
+    document.getElementById('client-phone').value = '';
+    document.getElementById('client-email').value = '';
+    document.getElementById('client-notes').value = '';
+    document.getElementById('client-status').value = 'active';
+    document.getElementById('client-modal-error').textContent = '';
+    document.getElementById('client-modal').style.display = 'flex';
+}
+
+function openEditClientModal(clientId) {
+    const client = clients.find(c => c.id === clientId);
+    if (!client) return;
+    editingClientId = clientId;
+    document.getElementById('client-modal-title').textContent = 'تعديل بيانات العميل';
+    document.getElementById('client-name').value = client.name || '';
+    document.getElementById('client-company').value = client.company || '';
+    document.getElementById('client-phone').value = client.phone || '';
+    document.getElementById('client-email').value = client.email || '';
+    document.getElementById('client-notes').value = client.notes || '';
+    document.getElementById('client-status').value = client.status || 'active';
+    document.getElementById('client-modal-error').textContent = '';
+    document.getElementById('client-modal').style.display = 'flex';
+}
+
+function closeClientModal() {
+    document.getElementById('client-modal').style.display = 'none';
+    editingClientId = null;
+}
+
+function saveClient() {
+    const name = document.getElementById('client-name').value.trim();
+    const errorEl = document.getElementById('client-modal-error');
+    if (!name) { errorEl.textContent = '❌ يرجى إدخال اسم العميل'; return; }
+    const data = {
+        name,
+        company: document.getElementById('client-company').value.trim(),
+        phone: document.getElementById('client-phone').value.trim(),
+        email: document.getElementById('client-email').value.trim(),
+        notes: document.getElementById('client-notes').value.trim(),
+        status: document.getElementById('client-status').value,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    if (editingClientId) {
+        getClientsRef().doc(editingClientId).update(data);
+        showToast('✅ تم تعديل بيانات العميل', 'success');
+    } else {
+        data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+        getClientsRef().add(data);
+        showToast('✅ تمت إضافة العميل', 'success');
+    }
+    closeClientModal();
+}
+
+function deleteClient(clientId) {
+    showConfirm('حذف العميل', 'هل أنت متأكد من حذف هذا العميل؟', () => {
+        getClientsRef().doc(clientId).delete();
+        showToast('🗑️ تم حذف العميل', 'success');
+    });
 }
 
 // ==================== الأرشيف ====================
