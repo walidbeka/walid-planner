@@ -176,13 +176,17 @@ body {
     width: 100%;
 }
 .page { display: none; }
-.page.active { display: block; animation: fadeUp 0.25s ease; }
+.page.active { display: block; animation: pageIn 0.35s cubic-bezier(0.4, 0, 0.2, 1); }
 
 .page-header { margin-bottom: 24px; padding-top: 4px; }
 .page-header h1 { font-size: 22px; font-weight: 700; }
 .page-header p { color: var(--text-secondary); font-size: 14px; margin-top: 2px; }
 
 @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes pageIn { from { opacity: 0; transform: translateY(16px) scale(0.99); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes cardIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes scaleIn { from { opacity: 0; transform: scale(0.92); } to { opacity: 1; transform: scale(1); } }
+@keyframes slideRight { from { transform: translateX(-30px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 
 /* === الأزرار === */
 .btn {
@@ -748,6 +752,97 @@ body {
     .modal { border-radius: var(--radius-lg); }
     .toast-container { left: auto; right: calc(var(--sidebar-width) + 16px); }
 }
+
+/* === أنيميشن المهام === */
+.tasks-list .task-card { animation: cardIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) backwards; }
+.tasks-list .task-card:nth-child(1) { animation-delay: 0.02s; }
+.tasks-list .task-card:nth-child(2) { animation-delay: 0.06s; }
+.tasks-list .task-card:nth-child(3) { animation-delay: 0.10s; }
+.tasks-list .task-card:nth-child(4) { animation-delay: 0.14s; }
+.tasks-list .task-card:nth-child(5) { animation-delay: 0.18s; }
+.tasks-list .task-card:nth-child(6) { animation-delay: 0.22s; }
+.tasks-list .task-card:nth-child(7) { animation-delay: 0.26s; }
+.tasks-list .task-card:nth-child(8) { animation-delay: 0.30s; }
+.tasks-list .task-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); transition: 0.2s ease; }
+
+/* === أنيميشن الأزرار والتفاعلات === */
+.btn { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+.btn:active { transform: scale(0.96); }
+.chip { transition: all 0.2s ease; }
+.chip:active { transform: scale(0.94); }
+.nav-btn { transition: all 0.2s ease; }
+
+/* === أنيميشن الأحداث === */
+.events-list .event-item { animation: slideRight 0.3s cubic-bezier(0.4, 0, 0.2, 1) backwards; }
+.events-list .event-item:nth-child(1) { animation-delay: 0.03s; }
+.events-list .event-item:nth-child(2) { animation-delay: 0.06s; }
+.events-list .event-item:nth-child(3) { animation-delay: 0.09s; }
+.events-list .event-item:nth-child(4) { animation-delay: 0.12s; }
+.events-list .event-item:nth-child(5) { animation-delay: 0.15s; }
+
+/* === أنيميشن النافذة المنبثقة === */
+.modal-overlay { animation: fadeIn 0.2s ease; }
+.modal { animation: scaleIn 0.25s cubic-bezier(0.4, 0, 0.2, 1); }
+
+/* === أنيميشن التوست === */
+.toast { animation: slideInLeft 0.35s cubic-bezier(0.4, 0, 0.2, 1); }
+
+/* === Habits === */
+.habits-grid { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 16px; }
+.habit-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 16px; border-radius: var(--radius-sm);
+    background: var(--bg-card); border: 1px solid var(--border-light);
+    box-shadow: var(--shadow); transition: all 0.2s ease;
+}
+.habit-item:hover { box-shadow: var(--shadow-md); }
+.habit-check {
+    width: 36px; height: 36px; border-radius: 50%; border: 2.5px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: all 0.25s ease; font-size: 18px; flex-shrink: 0;
+}
+.habit-check.done { background: var(--success); border-color: var(--success); color: #fff; transform: scale(1.05); }
+.habit-check:active { transform: scale(0.9); }
+.habit-info { flex: 1; }
+.habit-name { font-size: 14px; font-weight: 600; color: var(--text); }
+.habit-streak { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.habit-delete { cursor: pointer; color: var(--text-muted); font-size: 16px; padding: 4px; }
+
+/* === Time Tracker === */
+.timer-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 12px; border-radius: 20px; border: none;
+    font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s ease;
+}
+.timer-btn.start { background: #dcfce7; color: #16a34a; }
+.timer-btn.stop { background: #ffe5e5; color: #dc2626; }
+.timer-btn.running { background: #fef3c7; color: #d97706; animation: pulse 1.5s infinite; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+
+/* === Voice Button === */
+.voice-btn {
+    width: 48px; height: 48px; border-radius: 50%; border: none;
+    background: var(--primary); color: #fff; font-size: 22px;
+    cursor: pointer; transition: all 0.2s ease;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 2px 8px rgba(108, 92, 231, 0.3);
+}
+.voice-btn:hover { background: var(--primary-hover); transform: scale(1.05); }
+.voice-btn:active { transform: scale(0.95); }
+.voice-btn.recording { background: var(--danger); animation: pulse 1s infinite; box-shadow: 0 2px 12px rgba(255, 107, 107, 0.4); }
+
+/* === Stats === */
+.stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px; }
+.stat-card {
+    background: var(--bg-card); border-radius: var(--radius); padding: 16px;
+    box-shadow: var(--shadow); border: 1px solid var(--border-light); text-align: center;
+}
+.stat-number { font-size: 28px; font-weight: 800; color: var(--primary); }
+.stat-label { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+.chart-bar {
+    height: 8px; border-radius: 4px; background: var(--bg-input); margin-top: 8px; overflow: hidden;
+}
+.chart-bar-fill { height: 100%; border-radius: 4px; background: var(--primary); transition: width 0.6s ease; }
 
 @media (min-width: 1024px) {
     .main-content { max-width: 900px; }

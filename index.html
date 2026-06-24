@@ -17,7 +17,7 @@
     </script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-functions-compat.js">
     </script>
-    <link rel="stylesheet" href="style.css?v=5">
+    <link rel="stylesheet" href="style.css?v=6">
 </head>
 <body>
     <!-- ==================== شاشة تسجيل الدخول ==================== -->
@@ -102,6 +102,14 @@
                 <button class="nav-btn" data-page="events" onclick="navigate('events')">
                     <span class="nav-icon">🎉</span>
                     <span>الأعياد والمناسبات</span>
+                </button>
+                <button class="nav-btn" data-page="habits" onclick="navigate('habits')">
+                    <span class="nav-icon">✅</span>
+                    <span>العادات</span>
+                </button>
+                <button class="nav-btn" data-page="stats" onclick="navigate('stats')">
+                    <span class="nav-icon">📊</span>
+                    <span>الإحصائيات</span>
                 </button>
                 <button class="nav-btn" data-page="search" onclick="navigate('search')">
                     <span class="nav-icon">🔍</span>
@@ -333,6 +341,45 @@
                 <div id="events-list" class="events-list"></div>
             </section>
 
+            <!-- ======== صفحة العادات ======== -->
+            <section id="page-habits" class="page">
+                <div class="page-header">
+                    <h1>✅ تتبع العادات</h1>
+                    <button class="btn btn-sm btn-primary" onclick="openAddHabitModal()">+ عادة جديدة</button>
+                </div>
+                <div class="events-filters" style="margin-bottom:12px">
+                    <button class="chip active" id="habits-today-btn" onclick="switchHabitsDate(0)">اليوم</button>
+                    <button class="chip" id="habits-prev-btn" onclick="switchHabitsDate(-1)">◀ أمس</button>
+                    <button class="chip" id="habits-next-btn" onclick="switchHabitsDate(1)">غداً ▶</button>
+                </div>
+                <div id="habits-date-label" style="font-size:13px;color:var(--text-muted);margin-bottom:12px"></div>
+                <div id="habits-list" class="habits-grid"></div>
+                <div id="habits-stats" class="card" style="margin-top:16px;display:none">
+                    <div class="card-header"><h3>📈 إحصائيات العادات</h3></div>
+                    <div id="habits-stats-content"></div>
+                </div>
+            </section>
+
+            <!-- ======== صفحة الإحصائيات ======== -->
+            <section id="page-stats" class="page">
+                <div class="page-header">
+                    <h1>📊 إحصائيات الإنتاجية</h1>
+                </div>
+                <div class="stats-grid" id="stats-overview"></div>
+                <div class="card" style="margin-bottom:16px">
+                    <div class="card-header"><h3>📈 المهام المكتملة (آخر 7 أيام)</h3></div>
+                    <div id="stats-weekly-chart"></div>
+                </div>
+                <div class="card" style="margin-bottom:16px">
+                    <div class="card-header"><h3>🔴 المهام المتأخرة حسب الأولوية</h3></div>
+                    <div id="stats-priority-chart"></div>
+                </div>
+                <div class="card">
+                    <div class="card-header"><h3>📁 المهام حسب المشروع</h3></div>
+                    <div id="stats-project-chart"></div>
+                </div>
+            </section>
+
             <!-- ======== صفحة البحث ======== -->
             <section id="page-search" class="page">
                 <div class="page-header">
@@ -476,7 +523,34 @@
                     </div>
                     <div class="form-group">
                         <label>وقت التنفيذ</label>
-                        <input type="time" id="task-time">
+                        <div style="display:flex;gap:6px;align-items:center">
+                            <input type="time" id="task-time" style="flex:1">
+                            <button type="button" class="voice-btn" id="voice-btn" onclick="startVoiceInput()" title="إدخال صوتي">🎤</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>التكرار</label>
+                        <select id="task-recurrence">
+                            <option value="">بدون تكرار</option>
+                            <option value="daily">يومياً</option>
+                            <option value="weekly">أسبوعياً</option>
+                            <option value="monthly">شهرياً</option>
+                            <option value="yearly">سنوياً</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>التذكير</label>
+                        <select id="task-reminder">
+                            <option value="">بدون تذكير</option>
+                            <option value="0">في الموعد</option>
+                            <option value="5">قبل 5 دقائق</option>
+                            <option value="15" selected>قبل 15 دقيقة</option>
+                            <option value="30">قبل 30 دقيقة</option>
+                            <option value="60">قبل ساعة</option>
+                            <option value="1440">قبل يوم</option>
+                        </select>
                     </div>
                 </div>
                 <div class="modal-error" id="modal-error"></div>
@@ -509,6 +583,6 @@
     <div id="toast-container" class="toast-container"></div>
 
     <script src="firebase-config.js?v=7"></script>
-    <script src="app.js?v=37"></script>
+    <script src="app.js?v=38"></script>
 </body>
 </html>

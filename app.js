@@ -69,6 +69,7 @@ function initApp() {
     setupDailyReminder();
     requestNotificationPermission();
     startTaskTimeChecker();
+    loadHabits();
 }
 
 // ==================== التنقل ====================
@@ -85,6 +86,8 @@ function navigate(page, params) {
     if (page === 'calendar') renderCalendar();
     if (page === 'projects') renderProjects();
     if (page === 'events') renderEvents();
+    if (page === 'habits') loadHabits();
+    if (page === 'stats') renderStats();
     if (page === 'search') document.getElementById('global-search-input').focus();
     if (page === 'archive') renderArchive();
     if (page === 'settings') { document.getElementById('theme-toggle-setting').checked = localStorage.getItem('wp_theme') === 'dark'; }
@@ -274,6 +277,8 @@ function openAddTaskModal(data) {
     document.getElementById('task-status').value = 'new';
     document.getElementById('task-date').value = data && data.date ? data.date : todayStr();
     document.getElementById('task-time').value = data && data.time ? data.time : '';
+    document.getElementById('task-recurrence').value = data && data.recurrence ? data.recurrence : '';
+    document.getElementById('task-reminder').value = data && data.reminder ? data.reminder : '15';
     document.getElementById('modal-error').textContent = '';
     updateProjectsDropdown();
     if (data && data.project) document.getElementById('task-project').value = data.project;
@@ -293,6 +298,8 @@ function openEditTaskModal(task) {
     document.getElementById('task-status').value = task.status || 'new';
     document.getElementById('task-date').value = task.date || todayStr();
     document.getElementById('task-time').value = task.time || '';
+    document.getElementById('task-recurrence').value = task.recurrence || '';
+    document.getElementById('task-reminder').value = task.reminder || '15';
     document.getElementById('modal-error').textContent = '';
     updateProjectsDropdown();
     document.getElementById('task-project').value = task.project || '';
@@ -338,7 +345,10 @@ function saveTask() {
         type, project,
         priority, status,
         date, time: time || '',
+        recurrence: document.getElementById('task-recurrence').value || '',
+        reminder: document.getElementById('task-reminder').value || '',
         archived: false,
+        timeTracked: 0,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     };
 
@@ -368,6 +378,9 @@ function toggleTaskComplete(taskId) {
         update.completedAt = null;
     }
     getTaskDocRef(taskId).update(update);
+    if (newStatus === 'completed' && task.recurrence) {
+        handleRecurringTask(task);
+    }
 }
 
 function deleteTask(taskId) {
@@ -640,6 +653,273 @@ function formatEventDate(dateStr) {
     return days[d.getDay()] + ' ' + d.getDate() + ' ' + months[d.getMonth()] + ' ' + d.getFullYear();
 }
 
+// ==================== الإدخال الصوتي ====================
+function startVoiceInput() {
+    if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+        showToast('❌ المتصفح لا يدعم الإدخال الصوتي', 'error');
+        return;
+    }
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'ar-EG';
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    const btn = document.getElementById('voice-btn');
+    btn.classList.add('recording');
+    btn.textContent = '🔴';
+    recognition.onresult = function(event) {
+        const text = event.results[0][0].transcript;
+        document.getElementById('task-name').value = text;
+        btn.classList.remove('recording');
+        btn.textContent = '🎤';
+        showToast('🎤 تم التعرف على الصوت', 'success');
+    };
+    recognition.onerror = function() {
+        btn.classList.remove('recording');
+        btn.textContent = '🎤';
+        showToast('❌ فشل التعرف على الصوت', 'error');
+    };
+    recognition.onend = function() {
+        btn.classList.remove('recording');
+        btn.textContent = '🎤';
+    };
+    recognition.start();
+}
+
+// ==================== تتبع الوقت ====================
+let activeTimers = {};
+
+function toggleTimeTracker(taskId) {
+    if (activeTimers[taskId]) {
+        clearInterval(activeTimers[taskId].interval);
+        const elapsed = activeTimers[taskId].elapsed;
+        delete activeTimers[taskId];
+        const ref = db.collection('users').doc(currentUser.uid).collection('tasks').doc(taskId);
+        ref.get().then(doc => {
+            const current = doc.data().timeTracked || 0;
+            ref.update({ timeTracked: current + elapsed });
+        });
+        renderTasks();
+        showToast('⏹️ تم إيقاف التتبع', 'success');
+    } else {
+        let elapsed = 0;
+        const interval = setInterval(() => { elapsed += 1; }, 1000);
+        activeTimers[taskId] = { interval, elapsed, start: Date.now() };
+        renderTasks();
+        showToast('▶️ بدأ التتبع', 'success');
+    }
+}
+
+function formatTimeTracked(seconds) {
+    if (!seconds) return '0د';
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    if (h > 0) return h + 'س ' + m + 'د';
+    return m + 'د';
+}
+
+// ==================== المهام المتكررة ====================
+function handleRecurringTask(task) {
+    if (!task.recurrence || task.status !== 'completed') return;
+    const nextDate = getNextDate(task.date, task.recurrence);
+    if (!nextDate) return;
+    const newTask = Object.assign({}, task);
+    delete newTask.id;
+    delete newTask.createdAt;
+    delete newTask.completedAt;
+    newTask.date = nextDate;
+    newTask.status = 'new';
+    newTask.completedAt = null;
+    newTask.timeTracked = 0;
+    db.collection('users').doc(currentUser.uid).collection('tasks').add(newTask);
+}
+
+function getNextDate(dateStr, recurrence) {
+    const d = new Date(dateStr + 'T00:00:00');
+    if (recurrence === 'daily') d.setDate(d.getDate() + 1);
+    else if (recurrence === 'weekly') d.setDate(d.getDate() + 7);
+    else if (recurrence === 'monthly') d.setMonth(d.getMonth() + 1);
+    else if (recurrence === 'yearly') d.setFullYear(d.getFullYear() + 1);
+    return d.toISOString().slice(0, 10);
+}
+
+function getRecurrenceLabel(r) {
+    const m = { daily: '🔄 يومياً', weekly: '🔄 أسبوعياً', monthly: '🔄 شهرياً', yearly: '🔄 سنوياً' };
+    return m[r] || '';
+}
+
+// ==================== التذكيرات المتعددة ====================
+function setupReminders() {
+    if (!currentUser || !('Notification' in window) || Notification.permission !== 'granted') return;
+    const now = new Date();
+    tasks.forEach(t => {
+        if (t.archived || t.status === 'completed' || !t.time || !t.date) return;
+        const reminderMin = parseInt(t.reminder) || 0;
+        if (reminderMin === 0) return;
+        const taskDateTime = new Date(t.date + 'T' + t.time + ':00');
+        const reminderTime = new Date(taskDateTime.getTime() - reminderMin * 60000);
+        const diff = reminderTime.getTime() - now.getTime();
+        if (diff > 0 && diff < 60000) {
+            const key = t.id + '_rem_' + today();
+            if (!notifiedTasks.has(key)) {
+                notifiedTasks.add(key);
+                new Notification('⏰ تذكير: ' + t.name, {
+                    body: 'بقال ' + reminderMin + ' دقيقة',
+                    icon: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⏰</text></svg>',
+                    tag: key, requireInteraction: true
+                });
+            }
+        }
+    });
+}
+function today() { return new Date().toISOString().slice(0, 10); }
+
+// ==================== العادات ====================
+let habitsData = [];
+let habitsOffset = 0;
+
+function openAddHabitModal() {
+    const name = prompt('اسم العادة الجديدة:');
+    if (!name || !name.trim()) return;
+    const habit = { id: Date.now().toString(), name: name.trim(), createdAt: new Date().toISOString(), completions: {} };
+    db.collection('users').doc(currentUser.uid).collection('habits').add(habit)
+        .then(() => { loadHabits(); showToast('✅ تمت إضافة العادة', 'success'); })
+        .catch(err => showToast('❌ ' + err.message, 'error'));
+}
+
+function loadHabits() {
+    if (!currentUser) return;
+    db.collection('users').doc(currentUser.uid).collection('habits').get().then(snap => {
+        habitsData = [];
+        snap.forEach(doc => habitsData.push({ id: doc.id, ...doc.data() }));
+        renderHabits();
+    });
+}
+
+function toggleHabitDay(habitId, dateStr) {
+    const habit = habitsData.find(h => h.id === habitId);
+    if (!habit) return;
+    if (!habit.completions) habit.completions = {};
+    habit.completions[dateStr] = !habit.completions[dateStr];
+    db.collection('users').doc(currentUser.uid).collection('habits').doc(habitId).update({ completions: habit.completions });
+    renderHabits();
+}
+
+function deleteHabit(habitId) {
+    if (!confirm('حذف هذه العادة؟')) return;
+    db.collection('users').doc(currentUser.uid).collection('habits').doc(habitId).delete()
+        .then(() => { habitsData = habitsData.filter(h => h.id !== habitId); renderHabits(); });
+}
+
+function switchHabitsDate(offset) {
+    habitsOffset = offset === 0 ? 0 : habitsOffset + offset;
+    if (habitsOffset > 0) habitsOffset = 0;
+    renderHabits();
+}
+
+function renderHabits() {
+    const d = new Date();
+    d.setDate(d.getDate() + habitsOffset);
+    const dateStr = d.toISOString().slice(0, 10);
+    const days = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+    const months = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+    document.getElementById('habits-date-label').textContent = days[d.getDay()] + ' ' + d.getDate() + ' ' + months[d.getMonth()] + ' ' + d.getFullYear();
+    document.getElementById('habits-today-btn').className = habitsOffset === 0 ? 'chip active' : 'chip';
+    const listEl = document.getElementById('habits-list');
+    if (!habitsData.length) {
+        listEl.innerHTML = '<p class="empty-msg">لا توجد عادات بعد. أضف عادة جديدة!</p>';
+        return;
+    }
+    listEl.innerHTML = habitsData.map(h => {
+        const done = h.completions && h.completions[dateStr];
+        let streak = 0;
+        const checkDate = new Date(d);
+        for (let i = 0; i < 365; i++) {
+            const ds = checkDate.toISOString().slice(0, 10);
+            if (h.completions && h.completions[ds]) { streak++; checkDate.setDate(checkDate.getDate() - 1); }
+            else break;
+        }
+        return `<div class="habit-item">
+            <div class="habit-check ${done ? 'done' : ''}" onclick="toggleHabitDay('${h.id}','${dateStr}')">${done ? '✓' : ''}</div>
+            <div class="habit-info">
+                <div class="habit-name">${h.name}</div>
+                <div class="habit-streak">${streak > 0 ? '🔥 ' + streak + ' أيام متتالية' : 'لم يكمل بعد'}</div>
+            </div>
+            <div class="habit-delete" onclick="deleteHabit('${h.id}')">🗑️</div>
+        </div>`;
+    }).join('');
+}
+
+// ==================== الإحصائيات ====================
+function renderStats() {
+    const today = todayStr();
+    const completed = tasks.filter(t => t.status === 'completed');
+    const active = tasks.filter(t => t.status !== 'completed' && !t.archived);
+    const overdue = tasks.filter(t => t.date < today && t.status !== 'completed' && !t.archived);
+    const totalTime = tasks.reduce((s, t) => s + (t.timeTracked || 0), 0);
+
+    document.getElementById('stats-overview').innerHTML = `
+        <div class="stat-card"><div class="stat-number">${active.length}</div><div class="stat-label">مهام نشطة</div></div>
+        <div class="stat-card"><div class="stat-number">${completed.length}</div><div class="stat-label">مكتملة</div></div>
+        <div class="stat-card"><div class="stat-number">${overdue.length}</div><div class="stat-label">متأخرة</div></div>
+        <div class="stat-card"><div class="stat-number">${formatTimeTracked(totalTime)}</div><div class="stat-label">وقت تتبع</div></div>
+    `;
+
+    const weeklyData = [];
+    for (let i = 6; i >= 0; i--) {
+        const d = new Date(); d.setDate(d.getDate() - i);
+        const ds = d.toISOString().slice(0, 10);
+        const count = completed.filter(t => {
+            if (!t.completedAt) return false;
+            const cd = t.completedAt.toDate ? t.completedAt.toDate() : new Date(t.completedAt);
+            return cd.toISOString().slice(0, 10) === ds;
+        }).length;
+        const dayNames = ['أحد', 'اثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة', 'سبت'];
+        weeklyData.push({ day: dayNames[d.getDay()], count });
+    }
+    const maxWeekly = Math.max(...weeklyData.map(w => w.count), 1);
+    document.getElementById('stats-weekly-chart').innerHTML = weeklyData.map(w =>
+        `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <span style="width:40px;font-size:12px;color:var(--text-muted)">${w.day}</span>
+            <div class="chart-bar" style="flex:1"><div class="chart-bar-fill" style="width:${(w.count/maxWeekly)*100}%"></div></div>
+            <span style="width:20px;font-size:13px;font-weight:700;text-align:center">${w.count}</span>
+        </div>`
+    ).join('');
+
+    const priorities = { high: 0, medium: 0, low: 0 };
+    overdue.forEach(t => { priorities[t.priority] = (priorities[t.priority] || 0) + 1; });
+    const maxPri = Math.max(priorities.high, priorities.medium, priorities.low, 1);
+    document.getElementById('stats-priority-chart').innerHTML = `
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <span style="width:50px;font-size:12px;color:var(--danger)">عالية</span>
+            <div class="chart-bar" style="flex:1"><div class="chart-bar-fill" style="width:${(priorities.high/maxPri)*100}%;background:var(--danger)"></div></div>
+            <span style="width:20px;font-size:13px;font-weight:700;text-align:center">${priorities.high}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <span style="width:50px;font-size:12px;color:var(--warning-dark)">متوسطة</span>
+            <div class="chart-bar" style="flex:1"><div class="chart-bar-fill" style="width:${(priorities.medium/maxPri)*100}%;background:var(--warning)"></div></div>
+            <span style="width:20px;font-size:13px;font-weight:700;text-align:center">${priorities.medium}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <span style="width:50px;font-size:12px;color:var(--success)">منخفضة</span>
+            <div class="chart-bar" style="flex:1"><div class="chart-bar-fill" style="width:${(priorities.low/maxPri)*100}%;background:var(--success)"></div></div>
+            <span style="width:20px;font-size:13px;font-weight:700;text-align:center">${priorities.low}</span>
+        </div>
+    `;
+
+    const projMap = {};
+    active.forEach(t => { const p = t.project || 'بدون مشروع'; projMap[p] = (projMap[p] || 0) + 1; });
+    const projEntries = Object.entries(projMap).sort((a, b) => b[1] - a[1]);
+    const maxProj = Math.max(...projEntries.map(e => e[1]), 1);
+    document.getElementById('stats-project-chart').innerHTML = projEntries.map(([name, count]) =>
+        `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <span style="width:100px;font-size:12px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${name}</span>
+            <div class="chart-bar" style="flex:1"><div class="chart-bar-fill" style="width:${(count/maxProj)*100}%"></div></div>
+            <span style="width:20px;font-size:13px;font-weight:700;text-align:center">${count}</span>
+        </div>`
+    ).join('');
+}
+
 // ==================== العرض — المهام ====================
 function renderTasks() {
     const filtered = getFilteredTasks();
@@ -701,10 +981,13 @@ function createTaskHTML(task) {
                 ${task.project ? '<span class="type-badge" style="background:#fef3c7;color:#92400e;">📁 ' + task.project + '</span>' : ''}
                 ${task.date ? '<span class="type-badge" style="background:#f0f0f0;color:#555;">📅 ' + task.date + '</span>' : ''}
                 ${task.time ? '<span class="type-badge" style="background:#f0f0f0;color:#555;">⏰ ' + formatTime12(task.time) + '</span>' : ''}
+                ${task.recurrence ? '<span class="type-badge" style="background:#ede9ff;color:#7c3aed;">' + getRecurrenceLabel(task.recurrence) + '</span>' : ''}
                 ${isOverdue ? '<span class="priority-badge priority-high">🔴 متأخرة</span>' : ''}
             </div>
         </div>
         <div class="task-actions">
+            <button class="timer-btn ${activeTimers[task.id] ? 'running' : ''}" onclick="event.stopPropagation();toggleTimeTracker('${task.id}')" title="تتبع الوقت">${activeTimers[task.id] ? '⏹️' : '▶️'}</button>
+            ${task.timeTracked ? '<span class="type-badge" style="background:#e5faf0;color:#16a34a;font-size:11px;">⏱ ' + formatTimeTracked(task.timeTracked) + '</span>' : ''}
             <button class="icon-btn" onclick="event.stopPropagation();duplicateTask('${task.id}')" title="نسخ">📋</button>
             <button class="icon-btn" onclick="event.stopPropagation();archiveTask('${task.id}')" title="أرشفة">📦</button>
             <button class="icon-btn" onclick="event.stopPropagation();deleteTask('${task.id}')" title="حذف">🗑️</button>
@@ -1038,6 +1321,7 @@ let notifiedTasks = new Set();
 function startTaskTimeChecker() {
     checkTaskTimes();
     setInterval(checkTaskTimes, 60000);
+    setInterval(setupReminders, 60000);
 }
 
 function checkTaskTimes() {
