@@ -86,6 +86,7 @@ function navigate(page, params) {
     if (page === 'projects') renderProjects();
     if (page === 'events') renderEvents();
     if (page === 'exhibitions') renderExhibitions();
+    if (page === 'accounts') renderAccounts();
     if (page === 'stats') renderStats();
     if (page === 'search') document.getElementById('global-search-input').focus();
     if (page === 'archive') renderArchive();
@@ -677,6 +678,216 @@ function renderExhibitions() {
             <span class="event-countdown ${statusClass}">${countdownText}</span>
         </div>`;
     }).join('');
+}
+
+// ==================== الحسابات ====================
+const ACCOUNTS_PIN = '100100';
+let payments = [];
+let editingPaymentId = null;
+
+function getPaymentsRef() {
+    return db.collection('users').doc(currentUser.uid).collection('payments');
+}
+
+function openAccountsLock() {
+    document.getElementById('accounts-pin').value = '';
+    document.getElementById('pin-error').style.display = 'none';
+    document.getElementById('accounts-lock').style.display = 'flex';
+    setTimeout(() => document.getElementById('accounts-pin').focus(), 100);
+}
+
+function closeAccountsLock() {
+    document.getElementById('accounts-lock').style.display = 'none';
+}
+
+function checkAccountsPin() {
+    const pin = document.getElementById('accounts-pin').value;
+    if (pin === ACCOUNTS_PIN) {
+        closeAccountsLock();
+        navigate('accounts');
+        loadPayments();
+    } else {
+        document.getElementById('pin-error').style.display = 'block';
+        document.getElementById('accounts-pin').value = '';
+    }
+}
+
+function loadPayments() {
+    getPaymentsRef().orderBy('createdAt', 'desc').onSnapshot(snap => {
+        payments = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        renderAccounts();
+    });
+}
+
+function renderAccounts() {
+    const el = document.getElementById('accounts-list');
+    if (!el) return;
+    let totalAll = 0, totalReceived = 0;
+    payments.forEach(p => {
+        const total = parseFloat(p.amount) || 0;
+        totalAll += total;
+        if (p.type === 'once') {
+            totalReceived += total;
+        } else if (p.installments) {
+            p.installments.forEach(i => { if (i.paid) totalReceived += parseFloat(i.amount) || 0; });
+        }
+    });
+    document.getElementById('acc-total-all').textContent = totalAll.toLocaleString('ar-EG') + ' ج.م';
+    document.getElementById('acc-total-received').textContent = totalReceived.toLocaleString('ar-EG') + ' ج.م';
+    document.getElementById('acc-total-pending').textContent = (totalAll - totalReceived).toLocaleString('ar-EG') + ' ج.م';
+
+    if (!payments.length) {
+        el.innerHTML = '<p class="empty-msg">لا توجد حسابات</p>';
+        return;
+    }
+    el.innerHTML = payments.map(p => {
+        const total = parseFloat(p.amount) || 0;
+        let paid = 0;
+        if (p.type === 'once') { paid = total; } else if (p.installments) {
+            p.installments.forEach(i => { if (i.paid) paid += parseFloat(i.amount) || 0; });
+        }
+        const percent = total > 0 ? Math.round((paid / total) * 100) : 0;
+        const typeLabel = p.type === 'once' ? 'دفعة واحدة' : 'دفعات';
+        let installmentsHTML = '';
+        if (p.type === 'installments' && p.installments && p.installments.length) {
+            installmentsHTML = '<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px">' +
+                p.installments.map((inst, idx) =>
+                    `<span class="type-badge" style="background:${inst.paid ? '#e8f5e9' : '#fff3e0'};color:${inst.paid ? '#2e7d32' : '#e65100'};cursor:pointer" onclick="event.stopPropagation();toggleInstallment('${p.id}',${idx})">${inst.label || 'دفعة ' + (idx+1)}: ${parseFloat(inst.amount).toLocaleString('ar-EG')}${inst.paid ? ' ✓' : ''}</span>`
+                ).join('') + '</div>';
+        }
+        return `<div class="task-item" style="cursor:default">
+            <div style="width:40px;height:40px;border-radius:50%;background:var(--primary-light);color:var(--primary);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;flex-shrink:0">${p.client ? p.client.charAt(0) : 'م'}</div>
+            <div class="task-content">
+                <div class="task-text">${p.client || 'عميل'} — ${total.toLocaleString('ar-EG')} ج.م</div>
+                <div class="task-meta">
+                    <span class="type-badge" style="background:#e7f3ff;color:#1877f2;">${typeLabel}</span>
+                    <span class="type-badge" style="background:#e8f5e9;color:#2e7d32;">${percent}%</span>
+                    ${p.notes ? '<span class="type-badge" style="background:#f0f0f0;color:#555;">' + p.notes + '</span>' : ''}
+                </div>
+                ${installmentsHTML}
+                <div class="chart-bar" style="margin-top:6px"><div class="chart-bar-fill" style="width:${percent}%"></div></div>
+            </div>
+            <div class="task-actions">
+                <button class="icon-btn" onclick="event.stopPropagation();openEditPaymentModal('${p.id}')" title="تعديل"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+                <button class="icon-btn" onclick="event.stopPropagation();deletePayment('${p.id}')" title="حذف"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function openAddPaymentModal() {
+    editingPaymentId = null;
+    document.getElementById('payment-modal-title').textContent = 'إضافة دفعة';
+    document.getElementById('pay-client').value = '';
+    document.getElementById('pay-amount').value = '';
+    document.getElementById('pay-type').value = 'once';
+    document.getElementById('pay-notes').value = '';
+    document.getElementById('installments-section').style.display = 'none';
+    document.getElementById('installments-list').innerHTML = '';
+    document.getElementById('payment-error').textContent = '';
+    document.getElementById('payment-modal').style.display = 'flex';
+}
+
+function openEditPaymentModal(paymentId) {
+    const p = payments.find(x => x.id === paymentId);
+    if (!p) return;
+    editingPaymentId = paymentId;
+    document.getElementById('payment-modal-title').textContent = 'تعديل الدفعة';
+    document.getElementById('pay-client').value = p.client || '';
+    document.getElementById('pay-amount').value = p.amount || '';
+    document.getElementById('pay-type').value = p.type || 'once';
+    document.getElementById('pay-notes').value = p.notes || '';
+    document.getElementById('payment-error').textContent = '';
+    if (p.type === 'installments') {
+        document.getElementById('installments-section').style.display = 'block';
+        document.getElementById('installments-list').innerHTML = '';
+        (p.installments || []).forEach((inst, idx) => addInstallmentRow(inst.label, inst.amount, inst.paid));
+    } else {
+        document.getElementById('installments-section').style.display = 'none';
+    }
+    document.getElementById('payment-modal').style.display = 'flex';
+}
+
+function closePaymentModal() {
+    document.getElementById('payment-modal').style.display = 'none';
+    editingPaymentId = null;
+}
+
+document.getElementById('pay-type').addEventListener('change', function() {
+    document.getElementById('installments-section').style.display = this.value === 'installments' ? 'block' : 'none';
+    if (this.value === 'installments' && !document.getElementById('installments-list').children.length) {
+        addInstallmentRow('دفعة 1', '', false);
+        addInstallmentRow('دفعة 2', '', false);
+    }
+});
+
+function addInstallmentRow(label, amount, paid) {
+    const container = document.getElementById('installments-list');
+    const idx = container.children.length;
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;gap:6px;align-items:center;margin-bottom:6px';
+    row.innerHTML = `
+        <input type="text" placeholder="الدفعة" value="${label || ''}" style="flex:1;padding:8px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-input);color:var(--text);font-size:13px">
+        <input type="number" placeholder="المبلغ" value="${amount || ''}" style="flex:1;padding:8px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-input);color:var(--text);font-size:13px">
+        <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text-secondary);white-space:nowrap">
+            <input type="checkbox" ${paid ? 'checked' : ''}> مدفوعة
+        </label>
+        <button class="icon-btn" onclick="this.parentElement.remove()" title="حذف"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+    `;
+    container.appendChild(row);
+}
+
+function savePayment() {
+    const client = document.getElementById('pay-client').value.trim();
+    const amount = document.getElementById('pay-amount').value;
+    const type = document.getElementById('pay-type').value;
+    const notes = document.getElementById('pay-notes').value.trim();
+    const errorEl = document.getElementById('payment-error');
+    if (!client) { errorEl.textContent = '❌ أدخل اسم العميل'; return; }
+    if (!amount || parseFloat(amount) <= 0) { errorEl.textContent = '❌ أدخل المبلغ'; return; }
+
+    const data = {
+        client, amount: parseFloat(amount), type, notes,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+    if (type === 'installments') {
+        const rows = document.getElementById('installments-list').children;
+        const installments = [];
+        for (let row of rows) {
+            const inputs = row.querySelectorAll('input');
+            installments.push({
+                label: inputs[0].value || 'دفعة',
+                amount: parseFloat(inputs[1].value) || 0,
+                paid: inputs[2].checked
+            });
+        }
+        data.installments = installments;
+    }
+
+    if (editingPaymentId) {
+        getPaymentsRef().doc(editingPaymentId).update(data);
+        showToast('✅ تم التعديل', 'success');
+    } else {
+        data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+        getPaymentsRef().add(data);
+        showToast('✅ تمت الإضافة', 'success');
+    }
+    closePaymentModal();
+}
+
+function toggleInstallment(paymentId, idx) {
+    const p = payments.find(x => x.id === paymentId);
+    if (!p || !p.installments || !p.installments[idx]) return;
+    p.installments[idx].paid = !p.installments[idx].paid;
+    getPaymentsRef().doc(paymentId).update({ installments: p.installments });
+}
+
+function deletePayment(paymentId) {
+    showConfirm('حذف الدفعة', 'هل أنت متأكد؟', () => {
+        getPaymentsRef().doc(paymentId).delete();
+        showToast('🗑️ تم الحذف', 'success');
+    });
 }
 
 function filterEvents(country) {
