@@ -586,6 +586,24 @@ function globalSearch(query) {
 // ==================== الأعياد والمناسبات ====================
 let eventsCountryFilter = 'all';
 
+const exhibitionsData = [
+    { date: '2026-02-01', name: 'Gulfood', nameAr: 'معرض جلفود', country: 'uae' },
+    { date: '2026-06-01', name: 'Fi Africa', nameAr: 'معرض في أفريقيا', country: 'egypt' },
+    { date: '2026-06-01', name: 'Food Expo', nameAr: 'المعرض العربي الدولي للصناعات الغذائية (فود إكسبو)', country: 'syria' },
+    { date: '2026-07-01', name: 'SIAB MAROC', nameAr: 'معرض سياب المغرب', country: 'morocco' },
+    { date: '2026-08-01', name: 'INFTEXPO', nameAr: 'المعرض الدولي للأغذية وتكنولوجيا الغذاء', country: 'jordan' },
+    { date: '2026-09-01', name: 'ISM Middle East', nameAr: 'معرض آي إس إم الشرق الأوسط', country: 'uae' },
+    { date: '2026-09-21', name: 'MENA Food', nameAr: 'معرض مينا للغذاء', country: 'libya' },
+    { date: '2026-09-27', name: 'The Saudi Food Show', nameAr: 'معرض الغذاء السعودي', country: 'ksa' },
+    { date: '2026-09-27', name: 'Saudi Food Manufacturing', nameAr: 'معرض تصنيع الأغذية السعودي', country: 'ksa' },
+    { date: '2026-10-01', name: '360 Food Syria', nameAr: 'معرض 360 فود سوريا', country: 'syria' },
+    { date: '2026-10-06', name: 'World Food Week', nameAr: 'الأسبوع العالمي للغذاء', country: 'uae' },
+    { date: '2026-10-12', name: 'Food Qatar', nameAr: 'معرض فود قطر', country: 'qatar' },
+    { date: '2026-11-15', name: 'Saudi Food Expo', nameAr: 'معرض الأغذية السعودي', country: 'ksa' },
+    { date: '2026-11-16', name: 'Foodex Saudi', nameAr: 'معرض فودكس السعودية', country: 'ksa' },
+    { date: '2026-12-07', name: 'Food Africa', nameAr: 'معرض فوود آفريكا', country: 'egypt' },
+];
+
 const holidaysData = [
     { date: '2026-06-16', name: 'رأس السنة الهجرية', nameAr: '1 محرم 1448هـ', country: 'ksa', category: 'islamic' },
     { date: '2026-06-16', name: 'رأس السنة الهجرية', nameAr: '1448هـ', country: 'egypt', category: 'islamic' },
@@ -628,6 +646,7 @@ function getEventIcon(cat) {
         shopping: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>',
         cultural: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>',
         religious: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path></svg>',
+        exhibition: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"></path><path d="M5 21V7l8-4v18"></path><path d="M19 21V11l-6-4"></path><path d="M9 9v.01"></path><path d="M9 12v.01"></path><path d="M9 15v.01"></path><path d="M9 18v.01"></path></svg>',
     };
     return icons[cat] || icons.social;
 }
@@ -689,6 +708,33 @@ function renderEvents() {
             <span class="event-countdown ${statusClass}">${countdownText}</span>
         </div>`;
     }).join('');
+
+    // عرض المعارض
+    const exhibEl = document.getElementById('exhibitions-list');
+    if (exhibEl) {
+        const countryLabels = { ksa: 'السعودية', egypt: 'مصر', uae: 'الامارات', syria: 'سوريا', morocco: 'المغرب', jordan: 'الأردن', libya: 'ليبيا', qatar: 'قطر' };
+        let exhibFiltered = [...exhibitionsData];
+        if (eventsCountryFilter !== 'all') exhibFiltered = exhibFiltered.filter(e => e.country === eventsCountryFilter);
+        exhibFiltered.sort((a, b) => a.date.localeCompare(b.date));
+        exhibEl.innerHTML = exhibFiltered.map(e => {
+            const diff = Math.ceil((new Date(e.date) - new Date(today)) / 86400000);
+            let countdownText = 'بعد ' + diff + ' يوم';
+            let statusClass = 'later';
+            if (diff < 0) { statusClass = 'past'; countdownText = 'مر'; }
+            else if (diff === 0) { statusClass = 'today'; countdownText = 'اليوم!'; }
+            else if (diff <= 14) { statusClass = 'soon'; countdownText = diff === 1 ? 'بكرة!' : 'بعد ' + diff + ' يوم'; }
+            const itemClass = diff < 0 ? 'past' : diff === 0 ? 'today' : 'upcoming';
+            return `<div class="event-item ${itemClass}">
+                <div class="event-flag">${getEventIcon('exhibition')}</div>
+                <div class="event-info">
+                    <div class="event-name">${e.nameAr}</div>
+                    <div class="event-date">${e.name} — ${formatEventDate(e.date)}</div>
+                </div>
+                <span class="event-country-tag">${countryLabels[e.country] || e.country}</span>
+                <span class="event-countdown ${statusClass}">${countdownText}</span>
+            </div>`;
+        }).join('');
+    }
 }
 
 function formatEventDate(dateStr) {
