@@ -655,34 +655,28 @@ function getEventIcon(cat) {
 function renderExhibitions() {
     const el = document.getElementById('exhibitions-table');
     if (!el) return;
-    const today = new Date();
+    const today = new Date().toISOString().slice(0, 10);
     const countryLabels = { ksa: 'السعودية', egypt: 'مصر', uae: 'الامارات', syria: 'سوريا', morocco: 'المغرب', jordan: 'الأردن', libya: 'ليبيا', qatar: 'قطر' };
     const sorted = [...exhibitionsData].sort((a, b) => a.date.localeCompare(b.date));
-    el.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:14px">
-        <thead><tr style="background:var(--bg-input);text-align:right">
-            <th style="padding:10px 12px;border-bottom:1px solid var(--border);font-weight:600">المعرض</th>
-            <th style="padding:10px 12px;border-bottom:1px solid var(--border);font-weight:600">الدولة</th>
-            <th style="padding:10px 12px;border-bottom:1px solid var(--border);font-weight:600">التاريخ</th>
-            <th style="padding:10px 12px;border-bottom:1px solid var(--border);font-weight:600">المتبقي</th>
-        </tr></thead>
-        <tbody>${sorted.map(e => {
-            const d = new Date(e.date + 'T00:00:00');
-            const diff = Math.ceil((d - today) / 86400000);
-            let countdown = '', color = '';
-            if (diff < 0) { countdown = 'مر'; color = '#999'; }
-            else if (diff === 0) { countdown = 'اليوم!'; color = '#dc3545'; }
-            else if (diff === 1) { countdown = 'بكرة!'; color = '#f59e0b'; }
-            else { countdown = diff + ' يوم'; color = diff <= 30 ? '#f59e0b' : '#2e7d32'; }
-            const months = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-            const dateStr = d.getDate() + ' ' + months[d.getMonth()] + ' ' + d.getFullYear();
-            return `<tr style="border-bottom:1px solid var(--border)">
-                <td style="padding:10px 12px"><strong>${e.nameAr}</strong><br><span style="color:var(--text-muted);font-size:12px">${e.name}</span></td>
-                <td style="padding:10px 12px">${countryLabels[e.country]}</td>
-                <td style="padding:10px 12px">${dateStr}</td>
-                <td style="padding:10px 12px;font-weight:700;color:${color}">${countdown}</td>
-            </tr>`;
-        }).join('')}</tbody>
-    </table>`;
+    el.innerHTML = sorted.map(e => {
+        const diff = Math.ceil((new Date(e.date) - new Date(today)) / 86400000);
+        let statusClass = 'later';
+        let countdownText = 'بعد ' + diff + ' يوم';
+        if (diff < 0) { statusClass = 'past'; countdownText = 'مر'; }
+        else if (diff === 0) { statusClass = 'today'; countdownText = 'اليوم!'; }
+        else if (diff === 1) { countdownText = 'بكرة!'; statusClass = 'soon'; }
+        else if (diff <= 14) { statusClass = 'soon'; }
+        const itemClass = diff < 0 ? 'past' : diff === 0 ? 'today' : 'upcoming';
+        return `<div class="event-item ${itemClass}">
+            <div class="event-flag">${getEventIcon('exhibition')}</div>
+            <div class="event-info">
+                <div class="event-name">${e.nameAr}</div>
+                <div class="event-date">${e.name} — ${formatEventDate(e.date)}</div>
+            </div>
+            <span class="event-country-tag">${countryLabels[e.country]}</span>
+            <span class="event-countdown ${statusClass}">${countdownText}</span>
+        </div>`;
+    }).join('');
 }
 
 function filterEvents(country) {
