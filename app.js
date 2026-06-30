@@ -689,6 +689,18 @@ function getPaymentsRef() {
     return db.collection('users').doc(currentUser.uid).collection('payments');
 }
 
+function getPaymentsLogRef() {
+    return db.collection('users').doc(currentUser.uid).collection('paymentsLog');
+}
+
+function logPayment(action, details) {
+    getPaymentsLogRef().add({
+        action,
+        details,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    });
+}
+
 function openAccountsLock() {
     document.getElementById('accounts-pin').value = '';
     document.getElementById('pin-error').style.display = 'none';
@@ -779,6 +791,7 @@ function renderAccounts() {
                 <div class="chart-bar" style="margin-top:6px"><div class="chart-bar-fill" style="width:${percent}%"></div></div>
             </div>
             <div class="task-actions">
+                <button class="icon-btn" onclick="event.stopPropagation();generateInvoice('${p.id}')" title="فاتورة"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg></button>
                 <button class="icon-btn" onclick="event.stopPropagation();openEditPaymentModal('${p.id}')" title="تعديل"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
                 <button class="icon-btn" onclick="event.stopPropagation();deletePayment('${p.id}')" title="حذف"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
             </div>
@@ -888,10 +901,12 @@ function savePayment() {
 
     if (editingPaymentId) {
         getPaymentsRef().doc(editingPaymentId).update(data);
+        logPayment('تعديل', 'تعديل دفعة للعميل ' + client + ' — ' + parseFloat(amount).toLocaleString('ar-EG') + ' ج.م');
         showToast('✅ تم التعديل', 'success');
     } else {
         data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
         getPaymentsRef().add(data);
+        logPayment('إضافة', 'دفعة جديدة من العميل ' + client + ' — ' + parseFloat(amount).toLocaleString('ar-EG') + ' ج.م (' + (type === 'once' ? 'دفعة واحدة' : 'دفعات') + ')');
         showToast('✅ تمت الإضافة', 'success');
     }
     closePaymentModal();
@@ -902,6 +917,8 @@ function toggleInstallment(paymentId, idx) {
     if (!p || !p.installments || !p.installments[idx]) return;
     p.installments[idx].paid = !p.installments[idx].paid;
     getPaymentsRef().doc(paymentId).update({ installments: p.installments });
+    logPayment(p.installments[idx].paid ? 'تسديد' : 'إلغاء تسديد',
+        'العميل ' + (p.client || '—') + ' — ' + (p.installments[idx].label || 'دفعة ' + (idx+1)) + ': ' + parseFloat(p.installments[idx].amount).toLocaleString('ar-EG') + ' ج.م');
 }
 
 function toggleOncePayment(paymentId) {
@@ -909,13 +926,170 @@ function toggleOncePayment(paymentId) {
     if (!p) return;
     const newStatus = p.status === 'paid' ? 'unpaid' : 'paid';
     getPaymentsRef().doc(paymentId).update({ status: newStatus });
+    logPayment(newStatus === 'paid' ? 'تسديد' : 'إلغاء تسديد',
+        'العميل ' + (p.client || '—') + ' — ' + parseFloat(p.amount).toLocaleString('ar-EG') + ' ج.م (دفعة واحدة)');
 }
 
 function deletePayment(paymentId) {
+    const p = payments.find(x => x.id === paymentId);
     showConfirm('حذف الدفعة', 'هل أنت متأكد؟', () => {
+        if (p) logPayment('حذف', 'حذف دفعة للعميل ' + (p.client || '—') + ' — ' + parseFloat(p.amount || 0).toLocaleString('ar-EG') + ' ج.م');
         getPaymentsRef().doc(paymentId).delete();
         showToast('🗑️ تم الحذف', 'success');
     });
+}
+
+function showTransactionsLog() {
+    const el = document.getElementById('log-content');
+    el.innerHTML = '<p class="empty-msg">جاري التحميل...</p>';
+    document.getElementById('log-modal').style.display = 'flex';
+    getPaymentsLogRef().orderBy('timestamp', 'desc').limit(100).get().then(snap => {
+        if (snap.empty) { el.innerHTML = '<p class="empty-msg">لا توجد معاملات بعد</p>'; return; }
+        el.innerHTML = snap.docs.map(d => {
+            const log = d.data();
+            const ts = log.timestamp ? log.timestamp.toDate() : new Date();
+            const dateStr = ts.toLocaleDateString('ar-EG');
+            const timeStr = ts.toLocaleTimeString('ar-EG');
+            const actionColor = log.action === 'حذف' ? '#dc3545' : log.action === 'تسديد' ? '#2e7d32' : log.action === 'إلغاء تسديد' ? '#f59e0b' : 'var(--primary)';
+            return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">
+                <div style="width:8px;height:8px;border-radius:50%;background:${actionColor};flex-shrink:0"></div>
+                <div style="flex:1;min-width:0">
+                    <div style="font-size:13px;font-weight:600;color:var(--text)">${log.action}</div>
+                    <div style="font-size:12px;color:var(--text-muted);margin-top:2px">${log.details}</div>
+                </div>
+                <div style="font-size:11px;color:var(--text-muted);white-space:nowrap">${dateStr}<br>${timeStr}</div>
+            </div>`;
+        }).join('');
+    });
+}
+
+function showAccountStatement() {
+    const el = document.getElementById('statement-content');
+    const clients = [...new Set(payments.map(p => p.client).filter(Boolean))];
+    let html = '<div class="form-group"><label>اختر العميل</label><select id="statement-client" onchange="renderStatement()" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-input);color:var(--text)"><option value="all">الكل</option>' +
+        clients.map(c => '<option value="' + c + '">' + c + '</option>').join('') +
+        '</select></div><div id="statement-body"></div>';
+    el.innerHTML = html;
+    document.getElementById('statement-modal').style.display = 'flex';
+    renderStatement();
+}
+
+function renderStatement() {
+    const sel = document.getElementById('statement-client');
+    if (!sel) return;
+    const clientFilter = sel.value;
+    let filtered = payments;
+    if (clientFilter !== 'all') filtered = payments.filter(p => p.client === clientFilter);
+    const body = document.getElementById('statement-body');
+    let totalAll = 0, totalPaid = 0, totalUnpaid = 0;
+    const rows = filtered.map(p => {
+        const total = parseFloat(p.amount) || 0;
+        let paid = 0;
+        if (p.type === 'once') { paid = p.status === 'paid' ? total : 0; }
+        else if (p.installments) { p.installments.forEach(i => { if (i.paid) paid += parseFloat(i.amount) || 0; }); }
+        const unpaid = total - paid;
+        totalAll += total; totalPaid += paid; totalUnpaid += unpaid;
+        const dateStr = p.date ? new Date(p.date + 'T00:00:00').toLocaleDateString('ar-EG') : '—';
+        const statusHTML = p.type === 'once'
+            ? '<span style="color:' + (p.status === 'paid' ? '#2e7d32' : '#dc3545') + '">' + (p.status === 'paid' ? 'مدفوعة' : 'متأخرة') + '</span>'
+            : '<span style="color:#2e7d32">' + paid.toLocaleString('ar-EG') + '</span> / <span style="color:#dc3545">' + unpaid.toLocaleString('ar-EG') + '</span>';
+        return { client: p.client, total, paid, unpaid, dateStr, statusHTML, notes: p.notes || '' };
+    });
+    if (clientFilter === 'all') {
+        const grouped = {};
+        rows.forEach(r => { if (!grouped[r.client]) grouped[r.client] = { total: 0, paid: 0, unpaid: 0 }; grouped[r.client].total += r.total; grouped[r.client].paid += r.paid; grouped[r.client].unpaid += r.unpaid; });
+        body.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:13px">
+            <thead><tr style="background:var(--bg-input);text-align:right">
+                <th style="padding:8px;border-bottom:1px solid var(--border)">العميل</th>
+                <th style="padding:8px;border-bottom:1px solid var(--border)">الإجمالي</th>
+                <th style="padding:8px;border-bottom:1px solid var(--border)">المدفوع</th>
+                <th style="padding:8px;border-bottom:1px solid var(--border)">المتبقي</th>
+            </tr></thead><tbody>` +
+            Object.entries(grouped).map(([c, v]) => `<tr style="border-bottom:1px solid var(--border)">
+                <td style="padding:8px;font-weight:600">${c}</td>
+                <td style="padding:8px">${v.total.toLocaleString('ar-EG')} ج.م</td>
+                <td style="padding:8px;color:#2e7d32">${v.paid.toLocaleString('ar-EG')} ج.م</td>
+                <td style="padding:8px;color:#dc3545">${v.unpaid.toLocaleString('ar-EG')} ج.م</td>
+            </tr>`).join('') +
+            `<tr style="font-weight:700;background:var(--bg-input)">
+                <td style="padding:8px">الإجمالي</td>
+                <td style="padding:8px">${totalAll.toLocaleString('ar-EG')} ج.م</td>
+                <td style="padding:8px;color:#2e7d32">${totalPaid.toLocaleString('ar-EG')} ج.م</td>
+                <td style="padding:8px;color:#dc3545">${totalUnpaid.toLocaleString('ar-EG')} ج.م</td>
+            </tr></tbody></table>`;
+    } else {
+        body.innerHTML = `<div id="printable-statement"><div style="text-align:center;margin-bottom:16px">
+            <h3 style="margin:0">كشف حساب — ${clientFilter}</h3>
+            <p style="color:var(--text-muted);font-size:12px">بتاريخ ${new Date().toLocaleDateString('ar-EG')}</p>
+        </div>
+        <table style="width:100%;border-collapse:collapse;font-size:13px">
+            <thead><tr style="background:var(--bg-input);text-align:right">
+                <th style="padding:8px;border-bottom:1px solid var(--border)">التاريخ</th>
+                <th style="padding:8px;border-bottom:1px solid var(--border)">المبلغ</th>
+                <th style="padding:8px;border-bottom:1px solid var(--border)">النوع</th>
+                <th style="padding:8px;border-bottom:1px solid var(--border)">الحالة</th>
+                <th style="padding:8px;border-bottom:1px solid var(--border)">ملاحظات</th>
+            </tr></thead><tbody>` +
+            rows.map(r => `<tr style="border-bottom:1px solid var(--border)">
+                <td style="padding:8px">${r.dateStr}</td>
+                <td style="padding:8px">${r.total.toLocaleString('ar-EG')} ج.م</td>
+                <td style="padding:8px">${rows.indexOf(r) < filtered.length ? (filtered[rows.indexOf(r)].type === 'once' ? 'دفعة واحدة' : 'دفعات') : ''}</td>
+                <td style="padding:8px">${r.statusHTML}</td>
+                <td style="padding:8px;color:var(--text-muted)">${r.notes}</td>
+            </tr>`).join('') +
+            `<tr style="font-weight:700;background:var(--bg-input)">
+                <td style="padding:8px">الإجمالي</td>
+                <td style="padding:8px">${totalAll.toLocaleString('ar-EG')} ج.م</td>
+                <td colspan="2" style="padding:8px">مدفوع: <span style="color:#2e7d32">${totalPaid.toLocaleString('ar-EG')} ج.م</span> | متبقي: <span style="color:#dc3545">${totalUnpaid.toLocaleString('ar-EG')} ج.م</span></td>
+                <td></td>
+            </tr></tbody></table></div>`;
+    }
+}
+
+function printStatement() {
+    const content = document.getElementById('printable-statement') || document.getElementById('statement-body');
+    const w = window.open('', '_blank');
+    w.document.write('<html><head><title>كشف حساب</title><style>body{font-family:Arial,sans-serif;direction:rtl;padding:20px}table{width:100%;border-collapse:collapse}th,td{padding:8px;border-bottom:1px solid #ddd;text-align:right}th{background:#f5f5f5}tr:last-child{font-weight:bold}</style></head><body>' + content.innerHTML + '</body></html>');
+    w.document.close();
+    w.print();
+}
+
+function generateInvoice(paymentId) {
+    const p = payments.find(x => x.id === paymentId);
+    if (!p) return;
+    const total = parseFloat(p.amount) || 0;
+    let paid = 0;
+    if (p.type === 'once') { paid = p.status === 'paid' ? total : 0; }
+    else if (p.installments) { p.installments.forEach(i => { if (i.paid) paid += parseFloat(i.amount) || 0; }); }
+    const unpaid = total - paid;
+    const today = new Date().toLocaleDateString('ar-EG');
+    let installmentsTable = '';
+    if (p.type === 'installments' && p.installments && p.installments.length) {
+        installmentsTable = `<h3>تفاصيل الدفعات</h3>
+        <table><thead><tr><th>الدفعة</th><th>المبلغ</th><th>الحالة</th></tr></thead><tbody>` +
+            p.installments.map((inst, i) => `<tr><td>${inst.label || 'دفعة ' + (i+1)}</td><td>${parseFloat(inst.amount).toLocaleString('ar-EG')} ج.م</td><td>${inst.paid ? 'مدفوعة ✓' : 'لم تُدفع ✗'}</td></tr>`).join('') +
+            '</tbody></table>';
+    }
+    const w = window.open('', '_blank');
+    w.document.write(`<html><head><title>فاتورة — ${p.client}</title>
+    <style>body{font-family:Arial,sans-serif;direction:rtl;padding:30px;color:#333}
+    .header{text-align:center;border-bottom:2px solid #1877f2;padding-bottom:16px;margin-bottom:20px}
+    .header h1{margin:0;color:#1877f2;font-size:22px}table{width:100%;border-collapse:collapse;margin:12px 0}
+    th,td{padding:10px;border:1px solid #ddd;text-align:right}th{background:#f0f4ff;font-weight:600}
+    .total{font-size:18px;font-weight:bold;color:#1877f2;margin-top:16px;text-align:left}
+    .paid{color:#2e7d32}.unpaid{color:#dc3545}</style></head><body>
+    <div class="header"><h1>فاتورة</h1><p>${p.client || 'عميل'} — ${today}</p></div>
+    <table><tr><td>العميل</td><td><strong>${p.client || '—'}</strong></td></tr>
+    <tr><td>التاريخ</td><td>${p.date ? new Date(p.date + 'T00:00:00').toLocaleDateString('ar-EG') : today}</td></tr>
+    <tr><td>المبلغ الكلي</td><td><strong>${total.toLocaleString('ar-EG')} ج.م</strong></td></tr>
+    <tr><td>المدفوع</td><td class="paid">${paid.toLocaleString('ar-EG')} ج.م</td></tr>
+    <tr><td>المتبقي</td><td class="unpaid">${unpaid.toLocaleString('ar-EG')} ج.م</td></tr>
+    ${p.notes ? '<tr><td>ملاحظات</td><td>' + p.notes + '</td></tr>' : ''}
+    </table>${installmentsTable}
+    <p class="total">المبلغ المستحق: ${unpaid.toLocaleString('ar-EG')} ج.م</p>
+    </body></html>`);
+    w.document.close();
+    w.print();
 }
 
 function filterEvents(country) {

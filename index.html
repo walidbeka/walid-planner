@@ -360,6 +360,8 @@
                 <div class="page-header tasks-header">
                     <h1>الحسابات</h1>
                     <div class="tasks-actions-top">
+                        <button class="btn btn-secondary" onclick="showAccountStatement()">كشف حساب</button>
+                        <button class="btn btn-secondary" onclick="showTransactionsLog()">سجل المعاملات</button>
                         <button class="btn btn-primary" onclick="openAddPaymentModal()">+ إضافة دفعة</button>
                     </div>
                 </div>
@@ -658,6 +660,32 @@
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closePaymentModal()">إلغاء</button>
                 <button class="btn btn-primary" onclick="savePayment()">حفظ</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== مودال سجل المعاملات ==================== -->
+    <div class="modal-overlay" id="log-modal" style="display:none" onclick="closeModalOnOverlay(event)">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>سجل المعاملات</h2>
+                <button class="icon-btn" onclick="document.getElementById('log-modal').style.display='none'">✕</button>
+            </div>
+            <div class="modal-body" id="log-content" style="max-height:60vh;overflow-y:auto"></div>
+        </div>
+    </div>
+
+    <!-- ==================== مودال كشف حساب ==================== -->
+    <div class="modal-overlay" id="statement-modal" style="display:none" onclick="closeModalOnOverlay(event)">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>كشف حساب</h2>
+                <button class="icon-btn" onclick="document.getElementById('statement-modal').style.display='none'">✕</button>
+            </div>
+            <div class="modal-body" id="statement-content"></div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="document.getElementById('statement-modal').style.display='none'">إغلاق</button>
+                <button class="btn btn-primary" onclick="printStatement()">طباعة</button>
             </div>
         </div>
     </div>
