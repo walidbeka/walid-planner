@@ -722,19 +722,24 @@ function loadPayments() {
 function renderAccounts() {
     const el = document.getElementById('accounts-list');
     if (!el) return;
-    let totalAll = 0, totalReceived = 0;
+    let totalAll = 0, totalReceived = 0, totalPending = 0;
     payments.forEach(p => {
         const total = parseFloat(p.amount) || 0;
         totalAll += total;
         if (p.type === 'once') {
-            totalReceived += total;
+            if (p.status === 'paid') totalReceived += total;
+            else totalPending += total;
         } else if (p.installments) {
-            p.installments.forEach(i => { if (i.paid) totalReceived += parseFloat(i.amount) || 0; });
+            p.installments.forEach(i => {
+                const ia = parseFloat(i.amount) || 0;
+                if (i.paid) totalReceived += ia;
+                else totalPending += ia;
+            });
         }
     });
     document.getElementById('acc-total-all').textContent = totalAll.toLocaleString('ar-EG') + ' ج.م';
     document.getElementById('acc-total-received').textContent = totalReceived.toLocaleString('ar-EG') + ' ج.م';
-    document.getElementById('acc-total-pending').textContent = (totalAll - totalReceived).toLocaleString('ar-EG') + ' ج.م';
+    document.getElementById('acc-total-pending').textContent = totalPending.toLocaleString('ar-EG') + ' ج.م';
 
     if (!payments.length) {
         el.innerHTML = '<p class="empty-msg">لا توجد حسابات</p>';
@@ -743,11 +748,14 @@ function renderAccounts() {
     el.innerHTML = payments.map(p => {
         const total = parseFloat(p.amount) || 0;
         let paid = 0;
-        if (p.type === 'once') { paid = total; } else if (p.installments) {
+        if (p.type === 'once') { paid = p.status === 'paid' ? total : 0; } else if (p.installments) {
             p.installments.forEach(i => { if (i.paid) paid += parseFloat(i.amount) || 0; });
         }
         const percent = total > 0 ? Math.round((paid / total) * 100) : 0;
         const typeLabel = p.type === 'once' ? 'دفعة واحدة' : 'دفعات';
+        const statusLabel = p.type === 'once' ? (p.status === 'paid' ? 'مدفوعة' : 'لم تُدفع') : '';
+        const statusColor = p.type === 'once' ? (p.status === 'paid' ? '#2e7d32' : '#dc3545') : '';
+        const dateLabel = p.date ? new Date(p.date + 'T00:00:00').toLocaleDateString('ar-EG') : '';
         let installmentsHTML = '';
         if (p.type === 'installments' && p.installments && p.installments.length) {
             installmentsHTML = '<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px">' +
@@ -755,13 +763,16 @@ function renderAccounts() {
                     `<span class="type-badge" style="background:${inst.paid ? '#e8f5e9' : '#fff3e0'};color:${inst.paid ? '#2e7d32' : '#e65100'};cursor:pointer" onclick="event.stopPropagation();toggleInstallment('${p.id}',${idx})">${inst.label || 'دفعة ' + (idx+1)}: ${parseFloat(inst.amount).toLocaleString('ar-EG')}${inst.paid ? ' ✓' : ''}</span>`
                 ).join('') + '</div>';
         }
+        const paidBadge = p.type === 'once' ?
+            `<span class="type-badge" style="background:${statusColor}20;color:${statusColor};cursor:pointer" onclick="event.stopPropagation();toggleOncePayment('${p.id}')">${statusLabel}</span>` : '';
         return `<div class="task-item" style="cursor:default">
             <div style="width:40px;height:40px;border-radius:50%;background:var(--primary-light);color:var(--primary);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;flex-shrink:0">${p.client ? p.client.charAt(0) : 'م'}</div>
             <div class="task-content">
                 <div class="task-text">${p.client || 'عميل'} — ${total.toLocaleString('ar-EG')} ج.م</div>
                 <div class="task-meta">
                     <span class="type-badge" style="background:#e7f3ff;color:#1877f2;">${typeLabel}</span>
-                    <span class="type-badge" style="background:#e8f5e9;color:#2e7d32;">${percent}%</span>
+                    ${paidBadge}
+                    ${dateLabel ? '<span class="type-badge" style="background:#f0f0f0;color:#555;">' + dateLabel + '</span>' : ''}
                     ${p.notes ? '<span class="type-badge" style="background:#f0f0f0;color:#555;">' + p.notes + '</span>' : ''}
                 </div>
                 ${installmentsHTML}
@@ -781,6 +792,9 @@ function openAddPaymentModal() {
     document.getElementById('pay-client').value = '';
     document.getElementById('pay-amount').value = '';
     document.getElementById('pay-type').value = 'once';
+    document.getElementById('pay-date').value = new Date().toISOString().slice(0, 10);
+    document.getElementById('pay-status').value = 'unpaid';
+    document.getElementById('pay-status-group').style.display = 'none';
     document.getElementById('pay-notes').value = '';
     document.getElementById('installments-section').style.display = 'none';
     document.getElementById('installments-list').innerHTML = '';
@@ -796,6 +810,9 @@ function openEditPaymentModal(paymentId) {
     document.getElementById('pay-client').value = p.client || '';
     document.getElementById('pay-amount').value = p.amount || '';
     document.getElementById('pay-type').value = p.type || 'once';
+    document.getElementById('pay-date').value = p.date || '';
+    document.getElementById('pay-status').value = p.status || 'unpaid';
+    document.getElementById('pay-status-group').style.display = p.type === 'once' ? 'block' : 'none';
     document.getElementById('pay-notes').value = p.notes || '';
     document.getElementById('payment-error').textContent = '';
     if (p.type === 'installments') {
@@ -814,8 +831,10 @@ function closePaymentModal() {
 }
 
 document.getElementById('pay-type').addEventListener('change', function() {
-    document.getElementById('installments-section').style.display = this.value === 'installments' ? 'block' : 'none';
-    if (this.value === 'installments' && !document.getElementById('installments-list').children.length) {
+    const isInstallments = this.value === 'installments';
+    document.getElementById('installments-section').style.display = isInstallments ? 'block' : 'none';
+    document.getElementById('pay-status-group').style.display = isInstallments ? 'none' : 'block';
+    if (isInstallments && !document.getElementById('installments-list').children.length) {
         addInstallmentRow('دفعة 1', '', false);
         addInstallmentRow('دفعة 2', '', false);
     }
@@ -848,6 +867,8 @@ function savePayment() {
 
     const data = {
         client, amount: parseFloat(amount), type, notes,
+        date: document.getElementById('pay-date').value || '',
+        status: type === 'once' ? document.getElementById('pay-status').value : '',
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     };
 
@@ -881,6 +902,13 @@ function toggleInstallment(paymentId, idx) {
     if (!p || !p.installments || !p.installments[idx]) return;
     p.installments[idx].paid = !p.installments[idx].paid;
     getPaymentsRef().doc(paymentId).update({ installments: p.installments });
+}
+
+function toggleOncePayment(paymentId) {
+    const p = payments.find(x => x.id === paymentId);
+    if (!p) return;
+    const newStatus = p.status === 'paid' ? 'unpaid' : 'paid';
+    getPaymentsRef().doc(paymentId).update({ status: newStatus });
 }
 
 function deletePayment(paymentId) {
