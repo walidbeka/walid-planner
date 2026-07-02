@@ -693,12 +693,10 @@ function getPaymentsLogRef() {
     return db.collection('users').doc(currentUser.uid).collection('paymentsLog');
 }
 
-function logPayment(action, details) {
-    getPaymentsLogRef().add({
-        action,
-        details,
-        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-    });
+function logPayment(action, details, paymentId) {
+    const data = { action, details, timestamp: firebase.firestore.FieldValue.serverTimestamp() };
+    if (paymentId) data.paymentId = paymentId;
+    getPaymentsLogRef().add(data);
 }
 
 function openAccountsLock() {
@@ -910,12 +908,14 @@ function savePayment() {
 
     if (editingPaymentId) {
         getPaymentsRef().doc(editingPaymentId).update(data);
-        logPayment('تعديل', 'تعديل دفعة للعميل ' + client + ' — ' + parseFloat(amount).toLocaleString('ar-EG') + ' ج.م');
+        logPayment('تعديل', 'تعديل دفعة للعميل ' + client + ' — ' + parseFloat(amount).toLocaleString('ar-EG') + ' ج.م', editingPaymentId);
         showToast('✅ تم التعديل', 'success');
     } else {
         data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-        getPaymentsRef().add(data);
-        logPayment('إضافة', 'دفعة جديدة من العميل ' + client + ' — ' + parseFloat(amount).toLocaleString('ar-EG') + ' ج.م (' + (type === 'once' ? 'دفعة واحدة' : 'دفعات') + ')');
+        const ref = getPaymentsRef().doc();
+        data.id = ref.id;
+        ref.set(data);
+        logPayment('إضافة', 'دفعة جديدة من العميل ' + client + ' — ' + parseFloat(amount).toLocaleString('ar-EG') + ' ج.م (' + (type === 'once' ? 'دفعة واحدة' : 'دفعات') + ')', ref.id);
         showToast('✅ تمت الإضافة', 'success');
     }
     closePaymentModal();
@@ -927,7 +927,7 @@ function toggleInstallment(paymentId, idx) {
     p.installments[idx].paid = !p.installments[idx].paid;
     getPaymentsRef().doc(paymentId).update({ installments: p.installments });
     logPayment(p.installments[idx].paid ? 'تسديد' : 'إلغاء تسديد',
-        'العميل ' + (p.client || '—') + ' — ' + (p.installments[idx].label || 'دفعة ' + (idx+1)) + ': ' + parseFloat(p.installments[idx].amount).toLocaleString('ar-EG') + ' ج.م');
+        'العميل ' + (p.client || '—') + ' — ' + (p.installments[idx].label || 'دفعة ' + (idx+1)) + ': ' + parseFloat(p.installments[idx].amount).toLocaleString('ar-EG') + ' ج.م', paymentId);
 }
 
 function toggleOncePayment(paymentId) {
@@ -936,14 +936,19 @@ function toggleOncePayment(paymentId) {
     const newStatus = p.status === 'paid' ? 'unpaid' : 'paid';
     getPaymentsRef().doc(paymentId).update({ status: newStatus });
     logPayment(newStatus === 'paid' ? 'تسديد' : 'إلغاء تسديد',
-        'العميل ' + (p.client || '—') + ' — ' + parseFloat(p.amount).toLocaleString('ar-EG') + ' ج.م (دفعة واحدة)');
+        'العميل ' + (p.client || '—') + ' — ' + parseFloat(p.amount).toLocaleString('ar-EG') + ' ج.م (دفعة واحدة)', paymentId);
 }
 
 function deletePayment(paymentId) {
     const p = payments.find(x => x.id === paymentId);
     showConfirm('حذف الدفعة', 'هل أنت متأكد؟', () => {
-        if (p) logPayment('حذف', 'حذف دفعة للعميل ' + (p.client || '—') + ' — ' + parseFloat(p.amount || 0).toLocaleString('ar-EG') + ' ج.م');
+        // حذف الدفعة وجميع سجل معاملاتها
         getPaymentsRef().doc(paymentId).delete();
+        getPaymentsLogRef().where('paymentId', '==', paymentId).get().then(snap => {
+            const batch = db.batch();
+            snap.forEach(doc => batch.delete(doc.ref));
+            batch.commit();
+        });
         showToast('🗑️ تم الحذف', 'success');
     });
 }
@@ -953,7 +958,13 @@ function showTransactionsLog() {
     el.innerHTML = '<p class="empty-msg">جاري التحميل...</p>';
     document.getElementById('log-modal').style.display = 'flex';
     getPaymentsLogRef().orderBy('timestamp', 'desc').limit(200).get().then(snap => {
-        const filtered = snap.docs.filter(d => d.data().action !== 'حذف');
+        const existingIds = new Set(payments.map(p => p.id));
+        const filtered = snap.docs.filter(d => {
+            const log = d.data();
+            if (log.action === 'حذف') return false;
+            if (log.paymentId && !existingIds.has(log.paymentId)) return false;
+            return true;
+        });
         if (!filtered.length) { el.innerHTML = '<p class="empty-msg">لا توجد معاملات بعد</p>'; return; }
         el.innerHTML = filtered.map(d => {
             const log = d.data();
@@ -1067,11 +1078,8 @@ function closePrintModal() {
 }
 
 function doPrint() {
-    const content = document.getElementById('print-content').innerHTML;
-    const w = window.open('', '_blank');
-    w.document.write('<html><head><title>كشف حساب</title><style>body{font-family:Arial,sans-serif;direction:rtl;padding:20px}table{width:100%;border-collapse:collapse}th,td{padding:8px;border-bottom:1px solid #ddd;text-align:right}th{background:#f5f5f5}tr:last-child{font-weight:bold}</style></head><body>' + content + '</body></html>');
-    w.document.close();
-    w.print();
+    closePrintModal();
+    showToast('تمت المعاينة', 'success');
 }
 
 function generateInvoice(paymentId) {
