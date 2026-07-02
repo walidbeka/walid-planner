@@ -706,6 +706,21 @@
         </div>
     </div>
 
+    <!-- ==================== مودال طباعة ==================== -->
+    <div class="modal-overlay" id="print-modal" style="display:none" onclick="closeModalOnOverlay(event)">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>معاينة الطباعة</h2>
+                <button class="icon-btn" onclick="closePrintModal()">✕</button>
+            </div>
+            <div class="modal-body" id="print-content" style="max-height:70vh;overflow-y:auto"></div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closePrintModal()">إغلاق</button>
+                <button class="btn btn-primary" onclick="doPrint()">طباعة</button>
+            </div>
+        </div>
+    </div>
+
     <!-- ==================== مودال التأكيد ==================== -->
     <div class="modal-overlay" id="confirm-modal" style="display:none" onclick="closeModalOnOverlay(event)">
         <div class="modal modal-sm">
