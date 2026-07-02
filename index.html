@@ -614,13 +614,33 @@
                 <button class="icon-btn" onclick="closePaymentModal()">✕</button>
             </div>
             <div class="modal-body">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>اسم العميل *</label>
+                        <input type="text" id="pay-client" placeholder="اسم العميل">
+                    </div>
+                    <div class="form-group">
+                        <label>رقم التواصل</label>
+                        <input type="tel" id="pay-phone" placeholder="01xxxxxxxxx">
+                    </div>
+                </div>
                 <div class="form-group">
-                    <label>اسم العميل *</label>
-                    <input type="text" id="pay-client" placeholder="اسم العميل">
+                    <label>الخدمة *</label>
+                    <input type="text" id="pay-service" placeholder="وصف الخدمة (مثلاً: إدارة سوشيال ميديا)">
                 </div>
                 <div class="form-row">
                     <div class="form-group">
-                        <label>المبلغ الكلي *</label>
+                        <label>المدة</label>
+                        <input type="text" id="pay-duration" placeholder="مثلاً: شهر واحد / 3 شهور">
+                    </div>
+                    <div class="form-group">
+                        <label>التاريخ</label>
+                        <input type="date" id="pay-date">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>المبلغ الكلي (ج.م) *</label>
                         <input type="number" id="pay-amount" placeholder="0">
                     </div>
                     <div class="form-group">
@@ -632,10 +652,6 @@
                     </div>
                 </div>
                 <div class="form-row">
-                    <div class="form-group">
-                        <label>التاريخ</label>
-                        <input type="date" id="pay-date">
-                    </div>
                     <div class="form-group" id="pay-status-group" style="display:none">
                         <label>الحالة</label>
                         <select id="pay-status">
@@ -643,10 +659,10 @@
                             <option value="paid">مدفوعة</option>
                         </select>
                     </div>
-                </div>
-                <div class="form-group">
-                    <label>ملاحظات</label>
-                    <input type="text" id="pay-notes" placeholder="ملاحظات..." style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-input);color:var(--text)">
+                    <div class="form-group">
+                        <label>ملاحظات</label>
+                        <input type="text" id="pay-notes" placeholder="ملاحظات...">
+                    </div>
                 </div>
                 <div id="installments-section" style="display:none">
                     <div class="form-group">

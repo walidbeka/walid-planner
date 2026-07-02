@@ -1,4 +1,4 @@
-/* ============================================
+﻿/* ============================================
    Walid Planner - مدير المهام الشخصي
    جميع الحقوق محفوظة © 2025
    ============================================ */
@@ -680,8 +680,9 @@ function renderExhibitions() {
     }).join('');
 }
 
-// ==================== الحسابات ====================
+// ==================== Ø§Ù„Ø­Ø³Ø§Ø¨Ø§Øª ====================
 const ACCOUNTS_PIN = '100100';
+const BUSINESS_INFO = { name: 'Walid Mohammed', phone: '+201274647071', address: 'Ø§Ù„Ù‡Ø±Ù… â€” Ù…ØµØ±' };
 let payments = [];
 let editingPaymentId = null;
 
@@ -694,11 +695,7 @@ function getPaymentsLogRef() {
 }
 
 function logPayment(action, details) {
-    getPaymentsLogRef().add({
-        action,
-        details,
-        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-    });
+    getPaymentsLogRef().add({ action, details, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
 }
 
 function openAccountsLock() {
@@ -731,78 +728,75 @@ function loadPayments() {
     });
 }
 
+function calcPayment(p) {
+    const total = parseFloat(p.amount) || 0;
+    let paid = 0;
+    if (p.type === 'once') { paid = p.status === 'paid' ? total : 0; }
+    else if (p.installments) { p.installments.forEach(i => { if (i.paid) paid += parseFloat(i.amount) || 0; }); }
+    return { total, paid, unpaid: total - paid, percent: total > 0 ? Math.round((paid / total) * 100) : 0 };
+}
+
 function renderAccounts() {
     const el = document.getElementById('accounts-list');
     if (!el) return;
     let totalAll = 0, totalReceived = 0, totalPending = 0;
     payments.forEach(p => {
-        const total = parseFloat(p.amount) || 0;
-        totalAll += total;
-        if (p.type === 'once') {
-            if (p.status === 'paid') totalReceived += total;
-            else totalPending += total;
-        } else if (p.installments) {
-            p.installments.forEach(i => {
-                const ia = parseFloat(i.amount) || 0;
-                if (i.paid) totalReceived += ia;
-                else totalPending += ia;
-            });
-        }
+        const c = calcPayment(p);
+        totalAll += c.total; totalReceived += c.paid; totalPending += c.unpaid;
     });
-    document.getElementById('acc-total-all').textContent = totalAll.toLocaleString('ar-EG') + ' ج.م';
-    document.getElementById('acc-total-received').textContent = totalReceived.toLocaleString('ar-EG') + ' ج.م';
-    document.getElementById('acc-total-pending').textContent = totalPending.toLocaleString('ar-EG') + ' ج.م';
+    document.getElementById('acc-total-all').textContent = totalAll.toLocaleString('ar-EG') + ' Ø¬.Ù…';
+    document.getElementById('acc-total-received').textContent = totalReceived.toLocaleString('ar-EG') + ' Ø¬.Ù…';
+    document.getElementById('acc-total-pending').textContent = totalPending.toLocaleString('ar-EG') + ' Ø¬.Ù…';
 
     if (!payments.length) {
-        el.innerHTML = '<p class="empty-msg">لا توجد حسابات</p>';
+        el.innerHTML = '<p class="empty-msg">Ù„Ø§ ØªÙˆØ¬Ø¯ Ø­Ø³Ø§Ø¨Ø§Øª Ø¨Ø¹Ø¯</p>';
         return;
     }
     el.innerHTML = payments.map(p => {
-        const total = parseFloat(p.amount) || 0;
-        let paid = 0;
-        if (p.type === 'once') { paid = p.status === 'paid' ? total : 0; } else if (p.installments) {
-            p.installments.forEach(i => { if (i.paid) paid += parseFloat(i.amount) || 0; });
-        }
-        const percent = total > 0 ? Math.round((paid / total) * 100) : 0;
-        const typeLabel = p.type === 'once' ? 'دفعة واحدة' : 'دفعات';
-        const statusLabel = p.type === 'once' ? (p.status === 'paid' ? 'مدفوعة' : 'لم تُدفع') : '';
+        const c = calcPayment(p);
+        const typeLabel = p.type === 'once' ? 'Ø¯ÙØ¹Ø© ÙˆØ§Ø­Ø¯Ø©' : 'Ø¯ÙØ¹Ø§Øª';
+        const statusLabel = p.type === 'once' ? (p.status === 'paid' ? 'Ù…Ø¯ÙÙˆØ¹Ø©' : 'Ù…ØªØ£Ø®Ø±Ø©') : '';
         const statusColor = p.type === 'once' ? (p.status === 'paid' ? '#2e7d32' : '#dc3545') : '';
-        const dateLabel = p.date ? new Date(p.date + 'T00:00:00').toLocaleDateString('ar-EG') : '';
+        const dateStr = p.date ? new Date(p.date + 'T00:00:00').toLocaleDateString('ar-EG') : '';
         let installmentsHTML = '';
         if (p.type === 'installments' && p.installments && p.installments.length) {
             installmentsHTML = '<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px">' +
                 p.installments.map((inst, idx) =>
-                    `<span class="type-badge" style="background:${inst.paid ? '#e8f5e9' : '#fff3e0'};color:${inst.paid ? '#2e7d32' : '#e65100'};cursor:pointer" onclick="event.stopPropagation();toggleInstallment('${p.id}',${idx})">${inst.label || 'دفعة ' + (idx+1)}: ${parseFloat(inst.amount).toLocaleString('ar-EG')}${inst.paid ? ' ✓' : ''}</span>`
+                    '<span class="type-badge" style="background:' + (inst.paid ? '#e8f5e9' : '#fff3e0') + ';color:' + (inst.paid ? '#2e7d32' : '#e65100') + ';cursor:pointer" onclick="event.stopPropagation();toggleInstallment(\'' + p.id + '\',' + idx + ')">' + (inst.label || 'Ø¯ÙØ¹Ø© ' + (idx+1)) + ': ' + parseFloat(inst.amount).toLocaleString('ar-EG') + (inst.paid ? ' âœ“' : '') + '</span>'
                 ).join('') + '</div>';
         }
         const paidBadge = p.type === 'once' ?
-            `<span class="type-badge" style="background:${statusColor}20;color:${statusColor};cursor:pointer" onclick="event.stopPropagation();toggleOncePayment('${p.id}')">${statusLabel}</span>` : '';
-        return `<div class="task-item" style="cursor:default">
-            <div style="width:40px;height:40px;border-radius:50%;background:var(--primary-light);color:var(--primary);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;flex-shrink:0">${p.client ? p.client.charAt(0) : 'م'}</div>
-            <div class="task-content">
-                <div class="task-text">${p.client || 'عميل'} — ${total.toLocaleString('ar-EG')} ج.م</div>
-                <div class="task-meta">
-                    <span class="type-badge" style="background:#e7f3ff;color:#1877f2;">${typeLabel}</span>
-                    ${paidBadge}
-                    ${dateLabel ? '<span class="type-badge" style="background:#f0f0f0;color:#555;">' + dateLabel + '</span>' : ''}
-                    ${p.notes ? '<span class="type-badge" style="background:#f0f0f0;color:#555;">' + p.notes + '</span>' : ''}
-                </div>
-                ${installmentsHTML}
-                <div class="chart-bar" style="margin-top:6px"><div class="chart-bar-fill" style="width:${percent}%"></div></div>
-            </div>
-            <div class="task-actions">
-                <button class="icon-btn" onclick="event.stopPropagation();generateInvoice('${p.id}')" title="فاتورة"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg></button>
-                <button class="icon-btn" onclick="event.stopPropagation();openEditPaymentModal('${p.id}')" title="تعديل"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
-                <button class="icon-btn" onclick="event.stopPropagation();deletePayment('${p.id}')" title="حذف"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
-            </div>
-        </div>`;
+            '<span class="type-badge" style="background:' + statusColor + '20;color:' + statusColor + ';cursor:pointer" onclick="event.stopPropagation();toggleOncePayment(\'' + p.id + '\')">' + statusLabel + '</span>' : '';
+        return '<div class="task-item" style="cursor:default;align-items:flex-start">' +
+            '<div style="width:40px;height:40px;border-radius:50%;background:var(--primary-light);color:var(--primary);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;flex-shrink:0">' + (p.client ? p.client.charAt(0) : 'Ù…') + '</div>' +
+            '<div class="task-content">' +
+                '<div class="task-text">' + (p.client || 'Ø¹Ù…ÙŠÙ„') + ' â€” ' + c.total.toLocaleString('ar-EG') + ' Ø¬.Ù…</div>' +
+                '<div class="task-meta">' +
+                    (p.service ? '<span class="type-badge" style="background:#e7f3ff;color:#1877f2;">' + p.service + '</span>' : '') +
+                    '<span class="type-badge" style="background:#f0f0f0;color:#555;">' + typeLabel + '</span>' +
+                    paidBadge +
+                    (dateStr ? '<span class="type-badge" style="background:#f0f0f0;color:#555;">' + dateStr + '</span>' : '') +
+                    (p.duration ? '<span class="type-badge" style="background:#ede9ff;color:#7c3aed;">' + p.duration + '</span>' : '') +
+                '</div>' +
+                installmentsHTML +
+                '<div class="chart-bar" style="margin-top:6px"><div class="chart-bar-fill" style="width:' + c.percent + '%"></div></div>' +
+            '</div>' +
+            '<div class="task-actions" style="flex-direction:column;gap:2px">' +
+                '<button class="icon-btn" onclick="event.stopPropagation();generateInvoice(\'' + p.id + '\')" title="ÙØ§ØªÙˆØ±Ø©"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg></button>' +
+                '<button class="icon-btn" onclick="event.stopPropagation();openEditPaymentModal(\'' + p.id + '\')" title="ØªØ¹Ø¯ÙŠÙ„"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>' +
+                '<button class="icon-btn" onclick="event.stopPropagation();deletePayment(\'' + p.id + '\')" title="Ø­Ø°Ù"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>' +
+            '</div>' +
+        '</div>';
     }).join('');
 }
 
 function openAddPaymentModal() {
     editingPaymentId = null;
-    document.getElementById('payment-modal-title').textContent = 'إضافة دفعة';
+    document.getElementById('payment-modal-title').textContent = 'Ø¥Ø¶Ø§ÙØ© Ø¯ÙØ¹Ø©';
     document.getElementById('pay-client').value = '';
+    document.getElementById('pay-phone').value = '';
+    document.getElementById('pay-service').value = '';
+    document.getElementById('pay-duration').value = '';
     document.getElementById('pay-amount').value = '';
     document.getElementById('pay-type').value = 'once';
     document.getElementById('pay-date').value = new Date().toISOString().slice(0, 10);
@@ -819,8 +813,11 @@ function openEditPaymentModal(paymentId) {
     const p = payments.find(x => x.id === paymentId);
     if (!p) return;
     editingPaymentId = paymentId;
-    document.getElementById('payment-modal-title').textContent = 'تعديل الدفعة';
+    document.getElementById('payment-modal-title').textContent = 'ØªØ¹Ø¯ÙŠÙ„ Ø§Ù„Ø¯ÙØ¹Ø©';
     document.getElementById('pay-client').value = p.client || '';
+    document.getElementById('pay-phone').value = p.phone || '';
+    document.getElementById('pay-service').value = p.service || '';
+    document.getElementById('pay-duration').value = p.duration || '';
     document.getElementById('pay-amount').value = p.amount || '';
     document.getElementById('pay-type').value = p.type || 'once';
     document.getElementById('pay-date').value = p.date || '';
@@ -831,7 +828,7 @@ function openEditPaymentModal(paymentId) {
     if (p.type === 'installments') {
         document.getElementById('installments-section').style.display = 'block';
         document.getElementById('installments-list').innerHTML = '';
-        (p.installments || []).forEach((inst, idx) => addInstallmentRow(inst.label, inst.amount, inst.paid));
+        (p.installments || []).forEach((inst) => addInstallmentRow(inst.label, inst.amount, inst.paid));
     } else {
         document.getElementById('installments-section').style.display = 'none';
     }
@@ -848,24 +845,16 @@ document.getElementById('pay-type').addEventListener('change', function() {
     document.getElementById('installments-section').style.display = isInstallments ? 'block' : 'none';
     document.getElementById('pay-status-group').style.display = isInstallments ? 'none' : 'block';
     if (isInstallments && !document.getElementById('installments-list').children.length) {
-        addInstallmentRow('دفعة 1', '', false);
-        addInstallmentRow('دفعة 2', '', false);
+        addInstallmentRow('Ø¯ÙØ¹Ø© 1', '', false);
+        addInstallmentRow('Ø¯ÙØ¹Ø© 2', '', false);
     }
 });
 
 function addInstallmentRow(label, amount, paid) {
     const container = document.getElementById('installments-list');
-    const idx = container.children.length;
     const row = document.createElement('div');
     row.style.cssText = 'display:flex;gap:6px;align-items:center;margin-bottom:6px';
-    row.innerHTML = `
-        <input type="text" placeholder="الدفعة" value="${label || ''}" style="flex:1;padding:8px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-input);color:var(--text);font-size:13px">
-        <input type="number" placeholder="المبلغ" value="${amount || ''}" style="flex:1;padding:8px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-input);color:var(--text);font-size:13px">
-        <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text-secondary);white-space:nowrap">
-            <input type="checkbox" ${paid ? 'checked' : ''}> مدفوعة
-        </label>
-        <button class="icon-btn" onclick="this.parentElement.remove()" title="حذف"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
-    `;
+    row.innerHTML = '<input type="text" placeholder="Ø§Ù„Ø¯ÙØ¹Ø©" value="' + (label || '') + '" style="flex:1;padding:8px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-input);color:var(--text);font-size:13px"><input type="number" placeholder="Ø§Ù„Ù…Ø¨Ù„Øº" value="' + (amount || '') + '" style="flex:1;padding:8px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-input);color:var(--text);font-size:13px"><label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text-secondary);white-space:nowrap"><input type="checkbox" ' + (paid ? 'checked' : '') + '> Ù…Ø¯ÙÙˆØ¹Ø©</label><button class="icon-btn" onclick="this.parentElement.remove()" title="Ø­Ø°Ù"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>';
     container.appendChild(row);
 }
 
@@ -875,11 +864,17 @@ function savePayment() {
     const type = document.getElementById('pay-type').value;
     const notes = document.getElementById('pay-notes').value.trim();
     const errorEl = document.getElementById('payment-error');
-    if (!client) { errorEl.textContent = '❌ أدخل اسم العميل'; return; }
-    if (!amount || parseFloat(amount) <= 0) { errorEl.textContent = '❌ أدخل المبلغ'; return; }
+    if (!client) { errorEl.textContent = 'âŒ Ø£Ø¯Ø®Ù„ Ø§Ø³Ù… Ø§Ù„Ø¹Ù…ÙŠÙ„'; return; }
+    if (!amount || parseFloat(amount) <= 0) { errorEl.textContent = 'âŒ Ø£Ø¯Ø®Ù„ Ø§Ù„Ù…Ø¨Ù„Øº'; return; }
 
     const data = {
-        client, amount: parseFloat(amount), type, notes,
+        client: client,
+        phone: document.getElementById('pay-phone').value.trim(),
+        service: document.getElementById('pay-service').value.trim(),
+        duration: document.getElementById('pay-duration').value.trim(),
+        amount: parseFloat(amount),
+        type: type,
+        notes: notes,
         date: document.getElementById('pay-date').value || '',
         status: type === 'once' ? document.getElementById('pay-status').value : '',
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -890,24 +885,20 @@ function savePayment() {
         const installments = [];
         for (let row of rows) {
             const inputs = row.querySelectorAll('input');
-            installments.push({
-                label: inputs[0].value || 'دفعة',
-                amount: parseFloat(inputs[1].value) || 0,
-                paid: inputs[2].checked
-            });
+            installments.push({ label: inputs[0].value || 'Ø¯ÙØ¹Ø©', amount: parseFloat(inputs[1].value) || 0, paid: inputs[2].checked });
         }
         data.installments = installments;
     }
 
     if (editingPaymentId) {
         getPaymentsRef().doc(editingPaymentId).update(data);
-        logPayment('تعديل', 'تعديل دفعة للعميل ' + client + ' — ' + parseFloat(amount).toLocaleString('ar-EG') + ' ج.م');
-        showToast('✅ تم التعديل', 'success');
+        logPayment('ØªØ¹Ø¯ÙŠÙ„', 'ØªØ¹Ø¯ÙŠÙ„ Ø¯ÙØ¹Ø© Ù„Ù„Ø¹Ù…ÙŠÙ„ ' + client + ' â€” ' + parseFloat(amount).toLocaleString('ar-EG') + ' Ø¬.Ù…');
+        showToast('âœ… ØªÙ… Ø§Ù„ØªØ¹Ø¯ÙŠÙ„', 'success');
     } else {
         data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
         getPaymentsRef().add(data);
-        logPayment('إضافة', 'دفعة جديدة من العميل ' + client + ' — ' + parseFloat(amount).toLocaleString('ar-EG') + ' ج.م (' + (type === 'once' ? 'دفعة واحدة' : 'دفعات') + ')');
-        showToast('✅ تمت الإضافة', 'success');
+        logPayment('Ø¥Ø¶Ø§ÙØ©', 'Ø¯ÙØ¹Ø© Ø¬Ø¯ÙŠØ¯Ø© Ù…Ù† Ø§Ù„Ø¹Ù…ÙŠÙ„ ' + client + ' â€” ' + parseFloat(amount).toLocaleString('ar-EG') + ' Ø¬.Ù…');
+        showToast('âœ… ØªÙ…Øª Ø§Ù„Ø¥Ø¶Ø§ÙØ©', 'success');
     }
     closePaymentModal();
 }
@@ -917,8 +908,7 @@ function toggleInstallment(paymentId, idx) {
     if (!p || !p.installments || !p.installments[idx]) return;
     p.installments[idx].paid = !p.installments[idx].paid;
     getPaymentsRef().doc(paymentId).update({ installments: p.installments });
-    logPayment(p.installments[idx].paid ? 'تسديد' : 'إلغاء تسديد',
-        'العميل ' + (p.client || '—') + ' — ' + (p.installments[idx].label || 'دفعة ' + (idx+1)) + ': ' + parseFloat(p.installments[idx].amount).toLocaleString('ar-EG') + ' ج.م');
+    logPayment(p.installments[idx].paid ? 'ØªØ³Ø¯ÙŠØ¯' : 'Ø¥Ù„ØºØ§Ø¡ ØªØ³Ø¯ÙŠØ¯', 'Ø§Ù„Ø¹Ù…ÙŠÙ„ ' + (p.client || 'â€”') + ' â€” ' + (p.installments[idx].label || 'Ø¯ÙØ¹Ø©') + ': ' + parseFloat(p.installments[idx].amount).toLocaleString('ar-EG') + ' Ø¬.Ù…');
 }
 
 function toggleOncePayment(paymentId) {
@@ -926,39 +916,31 @@ function toggleOncePayment(paymentId) {
     if (!p) return;
     const newStatus = p.status === 'paid' ? 'unpaid' : 'paid';
     getPaymentsRef().doc(paymentId).update({ status: newStatus });
-    logPayment(newStatus === 'paid' ? 'تسديد' : 'إلغاء تسديد',
-        'العميل ' + (p.client || '—') + ' — ' + parseFloat(p.amount).toLocaleString('ar-EG') + ' ج.م (دفعة واحدة)');
+    logPayment(newStatus === 'paid' ? 'ØªØ³Ø¯ÙŠØ¯' : 'Ø¥Ù„ØºØ§Ø¡ ØªØ³Ø¯ÙŠØ¯', 'Ø§Ù„Ø¹Ù…ÙŠÙ„ ' + (p.client || 'â€”') + ' â€” ' + parseFloat(p.amount).toLocaleString('ar-EG') + ' Ø¬.Ù…');
 }
 
 function deletePayment(paymentId) {
     const p = payments.find(x => x.id === paymentId);
-    showConfirm('حذف الدفعة', 'هل أنت متأكد؟', () => {
-        if (p) logPayment('حذف', 'حذف دفعة للعميل ' + (p.client || '—') + ' — ' + parseFloat(p.amount || 0).toLocaleString('ar-EG') + ' ج.م');
+    showConfirm('Ø­Ø°Ù Ø§Ù„Ø¯ÙØ¹Ø©', 'Ù„Ù† ØªØ¸Ù‡Ø± ÙÙŠ Ø§Ù„Ø­Ø³Ø§Ø¨Ø§Øª Ø¨Ø¹Ø¯ Ø§Ù„Ø­Ø°Ù', () => {
+        if (p) logPayment('Ø­Ø°Ù', 'Ø­Ø°Ù Ø¯ÙØ¹Ø© Ù„Ù„Ø¹Ù…ÙŠÙ„ ' + (p.client || 'â€”') + ' â€” ' + parseFloat(p.amount || 0).toLocaleString('ar-EG') + ' Ø¬.Ù…');
         getPaymentsRef().doc(paymentId).delete();
-        showToast('🗑️ تم الحذف', 'success');
+        showToast('ðŸ—‘ï¸ ØªÙ… Ø§Ù„Ø­Ø°Ù', 'success');
     });
 }
 
 function showTransactionsLog() {
     const el = document.getElementById('log-content');
-    el.innerHTML = '<p class="empty-msg">جاري التحميل...</p>';
+    el.innerHTML = '<p class="empty-msg">Ø¬Ø§Ø±ÙŠ Ø§Ù„ØªØ­Ù…ÙŠÙ„...</p>';
     document.getElementById('log-modal').style.display = 'flex';
     getPaymentsLogRef().orderBy('timestamp', 'desc').limit(100).get().then(snap => {
-        if (snap.empty) { el.innerHTML = '<p class="empty-msg">لا توجد معاملات بعد</p>'; return; }
+        if (snap.empty) { el.innerHTML = '<p class="empty-msg">Ù„Ø§ ØªÙˆØ¬Ø¯ Ù…Ø¹Ø§Ù…Ù„Ø§Øª Ø¨Ø¹Ø¯</p>'; return; }
         el.innerHTML = snap.docs.map(d => {
             const log = d.data();
             const ts = log.timestamp ? log.timestamp.toDate() : new Date();
             const dateStr = ts.toLocaleDateString('ar-EG');
             const timeStr = ts.toLocaleTimeString('ar-EG');
-            const actionColor = log.action === 'حذف' ? '#dc3545' : log.action === 'تسديد' ? '#2e7d32' : log.action === 'إلغاء تسديد' ? '#f59e0b' : 'var(--primary)';
-            return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">
-                <div style="width:8px;height:8px;border-radius:50%;background:${actionColor};flex-shrink:0"></div>
-                <div style="flex:1;min-width:0">
-                    <div style="font-size:13px;font-weight:600;color:var(--text)">${log.action}</div>
-                    <div style="font-size:12px;color:var(--text-muted);margin-top:2px">${log.details}</div>
-                </div>
-                <div style="font-size:11px;color:var(--text-muted);white-space:nowrap">${dateStr}<br>${timeStr}</div>
-            </div>`;
+            const actionColor = log.action === 'Ø­Ø°Ù' ? '#dc3545' : log.action === 'ØªØ³Ø¯ÙŠØ¯' ? '#2e7d32' : log.action === 'Ø¥Ù„ØºØ§Ø¡ ØªØ³Ø¯ÙŠØ¯' ? '#f59e0b' : 'var(--primary)';
+            return '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)"><div style="width:8px;height:8px;border-radius:50%;background:' + actionColor + ';flex-shrink:0"></div><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;color:var(--text)">' + log.action + '</div><div style="font-size:12px;color:var(--text-muted);margin-top:2px">' + log.details + '</div></div><div style="font-size:11px;color:var(--text-muted);white-space:nowrap">' + dateStr + '<br>' + timeStr + '</div></div>';
         }).join('');
     });
 }
@@ -966,9 +948,7 @@ function showTransactionsLog() {
 function showAccountStatement() {
     const el = document.getElementById('statement-content');
     const clients = [...new Set(payments.map(p => p.client).filter(Boolean))];
-    let html = '<div class="form-group"><label>اختر العميل</label><select id="statement-client" onchange="renderStatement()" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-input);color:var(--text)"><option value="all">الكل</option>' +
-        clients.map(c => '<option value="' + c + '">' + c + '</option>').join('') +
-        '</select></div><div id="statement-body"></div>';
+    let html = '<div class="form-group"><label>Ø§Ø®ØªØ± Ø§Ù„Ø¹Ù…ÙŠÙ„</label><select id="statement-client" onchange="renderStatement()" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-input);color:var(--text)"><option value="all">Ø§Ù„ÙƒÙ„</option>' + clients.map(c => '<option value="' + c + '">' + c + '</option>').join('') + '</select></div><div id="statement-body"></div>';
     el.innerHTML = html;
     document.getElementById('statement-modal').style.display = 'flex';
     renderStatement();
@@ -983,73 +963,24 @@ function renderStatement() {
     const body = document.getElementById('statement-body');
     let totalAll = 0, totalPaid = 0, totalUnpaid = 0;
     const rows = filtered.map(p => {
-        const total = parseFloat(p.amount) || 0;
-        let paid = 0;
-        if (p.type === 'once') { paid = p.status === 'paid' ? total : 0; }
-        else if (p.installments) { p.installments.forEach(i => { if (i.paid) paid += parseFloat(i.amount) || 0; }); }
-        const unpaid = total - paid;
-        totalAll += total; totalPaid += paid; totalUnpaid += unpaid;
-        const dateStr = p.date ? new Date(p.date + 'T00:00:00').toLocaleDateString('ar-EG') : '—';
-        const statusHTML = p.type === 'once'
-            ? '<span style="color:' + (p.status === 'paid' ? '#2e7d32' : '#dc3545') + '">' + (p.status === 'paid' ? 'مدفوعة' : 'متأخرة') + '</span>'
-            : '<span style="color:#2e7d32">' + paid.toLocaleString('ar-EG') + '</span> / <span style="color:#dc3545">' + unpaid.toLocaleString('ar-EG') + '</span>';
-        return { client: p.client, total, paid, unpaid, dateStr, statusHTML, notes: p.notes || '' };
+        const c = calcPayment(p);
+        totalAll += c.total; totalPaid += c.paid; totalUnpaid += c.unpaid;
+        const dateStr = p.date ? new Date(p.date + 'T00:00:00').toLocaleDateString('ar-EG') : 'â€”';
+        return { client: p.client, service: p.service || 'â€”', dateStr: dateStr, total: c.total, paid: c.paid, unpaid: c.unpaid, notes: p.notes || '', type: p.type, status: p.status };
     });
     if (clientFilter === 'all') {
         const grouped = {};
         rows.forEach(r => { if (!grouped[r.client]) grouped[r.client] = { total: 0, paid: 0, unpaid: 0 }; grouped[r.client].total += r.total; grouped[r.client].paid += r.paid; grouped[r.client].unpaid += r.unpaid; });
-        body.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:13px">
-            <thead><tr style="background:var(--bg-input);text-align:right">
-                <th style="padding:8px;border-bottom:1px solid var(--border)">العميل</th>
-                <th style="padding:8px;border-bottom:1px solid var(--border)">الإجمالي</th>
-                <th style="padding:8px;border-bottom:1px solid var(--border)">المدفوع</th>
-                <th style="padding:8px;border-bottom:1px solid var(--border)">المتبقي</th>
-            </tr></thead><tbody>` +
-            Object.entries(grouped).map(([c, v]) => `<tr style="border-bottom:1px solid var(--border)">
-                <td style="padding:8px;font-weight:600">${c}</td>
-                <td style="padding:8px">${v.total.toLocaleString('ar-EG')} ج.م</td>
-                <td style="padding:8px;color:#2e7d32">${v.paid.toLocaleString('ar-EG')} ج.م</td>
-                <td style="padding:8px;color:#dc3545">${v.unpaid.toLocaleString('ar-EG')} ج.م</td>
-            </tr>`).join('') +
-            `<tr style="font-weight:700;background:var(--bg-input)">
-                <td style="padding:8px">الإجمالي</td>
-                <td style="padding:8px">${totalAll.toLocaleString('ar-EG')} ج.م</td>
-                <td style="padding:8px;color:#2e7d32">${totalPaid.toLocaleString('ar-EG')} ج.م</td>
-                <td style="padding:8px;color:#dc3545">${totalUnpaid.toLocaleString('ar-EG')} ج.م</td>
-            </tr></tbody></table>`;
+        body.innerHTML = '<div id="printable-statement"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:var(--bg-input);text-align:right"><th style="padding:8px;border-bottom:1px solid var(--border)">Ø§Ù„Ø¹Ù…ÙŠÙ„</th><th style="padding:8px;border-bottom:1px solid var(--border)">Ø§Ù„Ø¥Ø¬Ù…Ø§Ù„ÙŠ</th><th style="padding:8px;border-bottom:1px solid var(--border)">Ø§Ù„Ù…Ø¯ÙÙˆØ¹</th><th style="padding:8px;border-bottom:1px solid var(--border)">Ø§Ù„Ù…ØªØ¨Ù‚ÙŠ</th></tr></thead><tbody>' + Object.entries(grouped).map(([c, v]) => '<tr style="border-bottom:1px solid var(--border)"><td style="padding:8px;font-weight:600">' + c + '</td><td style="padding:8px">' + v.total.toLocaleString('ar-EG') + ' Ø¬.Ù…</td><td style="padding:8px;color:#2e7d32">' + v.paid.toLocaleString('ar-EG') + ' Ø¬.Ù…</td><td style="padding:8px;color:#dc3545">' + v.unpaid.toLocaleString('ar-EG') + ' Ø¬.Ù…</td></tr>').join('') + '<tr style="font-weight:700;background:var(--bg-input)"><td style="padding:8px">Ø§Ù„Ø¥Ø¬Ù…Ø§Ù„ÙŠ</td><td style="padding:8px">' + totalAll.toLocaleString('ar-EG') + ' Ø¬.Ù…</td><td style="padding:8px;color:#2e7d32">' + totalPaid.toLocaleString('ar-EG') + ' Ø¬.Ù…</td><td style="padding:8px;color:#dc3545">' + totalUnpaid.toLocaleString('ar-EG') + ' Ø¬.Ù…</td></tr></tbody></table></div>';
     } else {
-        body.innerHTML = `<div id="printable-statement"><div style="text-align:center;margin-bottom:16px">
-            <h3 style="margin:0">كشف حساب — ${clientFilter}</h3>
-            <p style="color:var(--text-muted);font-size:12px">بتاريخ ${new Date().toLocaleDateString('ar-EG')}</p>
-        </div>
-        <table style="width:100%;border-collapse:collapse;font-size:13px">
-            <thead><tr style="background:var(--bg-input);text-align:right">
-                <th style="padding:8px;border-bottom:1px solid var(--border)">التاريخ</th>
-                <th style="padding:8px;border-bottom:1px solid var(--border)">المبلغ</th>
-                <th style="padding:8px;border-bottom:1px solid var(--border)">النوع</th>
-                <th style="padding:8px;border-bottom:1px solid var(--border)">الحالة</th>
-                <th style="padding:8px;border-bottom:1px solid var(--border)">ملاحظات</th>
-            </tr></thead><tbody>` +
-            rows.map(r => `<tr style="border-bottom:1px solid var(--border)">
-                <td style="padding:8px">${r.dateStr}</td>
-                <td style="padding:8px">${r.total.toLocaleString('ar-EG')} ج.م</td>
-                <td style="padding:8px">${rows.indexOf(r) < filtered.length ? (filtered[rows.indexOf(r)].type === 'once' ? 'دفعة واحدة' : 'دفعات') : ''}</td>
-                <td style="padding:8px">${r.statusHTML}</td>
-                <td style="padding:8px;color:var(--text-muted)">${r.notes}</td>
-            </tr>`).join('') +
-            `<tr style="font-weight:700;background:var(--bg-input)">
-                <td style="padding:8px">الإجمالي</td>
-                <td style="padding:8px">${totalAll.toLocaleString('ar-EG')} ج.م</td>
-                <td colspan="2" style="padding:8px">مدفوع: <span style="color:#2e7d32">${totalPaid.toLocaleString('ar-EG')} ج.م</span> | متبقي: <span style="color:#dc3545">${totalUnpaid.toLocaleString('ar-EG')} ج.م</span></td>
-                <td></td>
-            </tr></tbody></table></div>`;
+        body.innerHTML = '<div id="printable-statement"><div style="text-align:center;margin-bottom:16px"><h3 style="margin:0">ÙƒØ´Ù Ø­Ø³Ø§Ø¨ â€” ' + clientFilter + '</h3><p style="color:var(--text-muted);font-size:12px">Ø¨ØªØ§Ø±ÙŠØ® ' + new Date().toLocaleDateString('ar-EG') + '</p></div><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:var(--bg-input);text-align:right"><th style="padding:8px;border-bottom:1px solid var(--border)">Ø§Ù„ØªØ§Ø±ÙŠØ®</th><th style="padding:8px;border-bottom:1px solid var(--border)">Ø§Ù„Ø®Ø¯Ù…Ø©</th><th style="padding:8px;border-bottom:1px solid var(--border)">Ø§Ù„Ù…Ø¨Ù„Øº</th><th style="padding:8px;border-bottom:1px solid var(--border)">Ø§Ù„Ø­Ø§Ù„Ø©</th></tr></thead><tbody>' + rows.map(r => '<tr style="border-bottom:1px solid var(--border)"><td style="padding:8px">' + r.dateStr + '</td><td style="padding:8px">' + r.service + '</td><td style="padding:8px">' + r.total.toLocaleString('ar-EG') + ' Ø¬.Ù…</td><td style="padding:8px;color:' + (r.type === 'once' ? (r.status === 'paid' ? '#2e7d32' : '#dc3545') : '#f59e0b') + '">' + (r.type === 'once' ? (r.status === 'paid' ? 'Ù…Ø¯ÙÙˆØ¹Ø©' : 'Ù…ØªØ£Ø®Ø±Ø©') : 'Ø¯ÙØ¹Ø§Øª') + '</td></tr>').join('') + '<tr style="font-weight:700;background:var(--bg-input)"><td style="padding:8px">Ø§Ù„Ø¥Ø¬Ù…Ø§Ù„ÙŠ</td><td style="padding:8px"></td><td style="padding:8px">' + totalAll.toLocaleString('ar-EG') + ' Ø¬.Ù…</td><td style="padding:8px">Ù…Ø¯ÙÙˆØ¹: <span style="color:#2e7d32">' + totalPaid.toLocaleString('ar-EG') + '</span> | Ù…ØªØ¨Ù‚ÙŠ: <span style="color:#dc3545">' + totalUnpaid.toLocaleString('ar-EG') + '</span></td></tr></tbody></table></div>';
     }
 }
 
 function printStatement() {
     const content = document.getElementById('printable-statement') || document.getElementById('statement-body');
     const w = window.open('', '_blank');
-    w.document.write('<html><head><title>كشف حساب</title><style>body{font-family:Arial,sans-serif;direction:rtl;padding:20px}table{width:100%;border-collapse:collapse}th,td{padding:8px;border-bottom:1px solid #ddd;text-align:right}th{background:#f5f5f5}tr:last-child{font-weight:bold}</style></head><body>' + content.innerHTML + '</body></html>');
+    w.document.write('<html><head><title>ÙƒØ´Ù Ø­Ø³Ø§Ø¨</title><style>body{font-family:Arial,sans-serif;direction:rtl;padding:20px}table{width:100%;border-collapse:collapse}th,td{padding:8px;border-bottom:1px solid #ddd;text-align:right}th{background:#f5f5f5}tr:last-child{font-weight:bold}</style></head><body>' + content.innerHTML + '</body></html>');
     w.document.close();
     w.print();
 }
@@ -1057,37 +988,14 @@ function printStatement() {
 function generateInvoice(paymentId) {
     const p = payments.find(x => x.id === paymentId);
     if (!p) return;
-    const total = parseFloat(p.amount) || 0;
-    let paid = 0;
-    if (p.type === 'once') { paid = p.status === 'paid' ? total : 0; }
-    else if (p.installments) { p.installments.forEach(i => { if (i.paid) paid += parseFloat(i.amount) || 0; }); }
-    const unpaid = total - paid;
+    const c = calcPayment(p);
     const today = new Date().toLocaleDateString('ar-EG');
     let installmentsTable = '';
     if (p.type === 'installments' && p.installments && p.installments.length) {
-        installmentsTable = `<h3>تفاصيل الدفعات</h3>
-        <table><thead><tr><th>الدفعة</th><th>المبلغ</th><th>الحالة</th></tr></thead><tbody>` +
-            p.installments.map((inst, i) => `<tr><td>${inst.label || 'دفعة ' + (i+1)}</td><td>${parseFloat(inst.amount).toLocaleString('ar-EG')} ج.م</td><td>${inst.paid ? 'مدفوعة ✓' : 'لم تُدفع ✗'}</td></tr>`).join('') +
-            '</tbody></table>';
+        installmentsTable = '<h3 style="margin:20px 0 8px;color:#333">ØªÙØ§ØµÙŠÙ„ Ø§Ù„Ø¯ÙØ¹Ø§Øª</h3><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:#f0f4ff;text-align:right"><th style="padding:8px;border:1px solid #ddd">Ø§Ù„Ø¯ÙØ¹Ø©</th><th style="padding:8px;border:1px solid #ddd">Ø§Ù„Ù…Ø¨Ù„Øº</th><th style="padding:8px;border:1px solid #ddd">Ø§Ù„Ø­Ø§Ù„Ø©</th></tr></thead><tbody>' + p.installments.map((inst, i) => '<tr><td style="padding:8px;border:1px solid #ddd">' + (inst.label || 'Ø¯ÙØ¹Ø© ' + (i+1)) + '</td><td style="padding:8px;border:1px solid #ddd">' + parseFloat(inst.amount).toLocaleString('ar-EG') + ' Ø¬.Ù…</td><td style="padding:8px;border:1px solid #ddd;color:' + (inst.paid ? '#2e7d32' : '#dc3545') + '">' + (inst.paid ? 'Ù…Ø¯ÙÙˆØ¹Ø© âœ“' : 'Ù„Ù… ØªÙØ¯ÙØ¹ âœ—') + '</td></tr>').join('') + '</tbody></table>';
     }
     const w = window.open('', '_blank');
-    w.document.write(`<html><head><title>فاتورة — ${p.client}</title>
-    <style>body{font-family:Arial,sans-serif;direction:rtl;padding:30px;color:#333}
-    .header{text-align:center;border-bottom:2px solid #1877f2;padding-bottom:16px;margin-bottom:20px}
-    .header h1{margin:0;color:#1877f2;font-size:22px}table{width:100%;border-collapse:collapse;margin:12px 0}
-    th,td{padding:10px;border:1px solid #ddd;text-align:right}th{background:#f0f4ff;font-weight:600}
-    .total{font-size:18px;font-weight:bold;color:#1877f2;margin-top:16px;text-align:left}
-    .paid{color:#2e7d32}.unpaid{color:#dc3545}</style></head><body>
-    <div class="header"><h1>فاتورة</h1><p>${p.client || 'عميل'} — ${today}</p></div>
-    <table><tr><td>العميل</td><td><strong>${p.client || '—'}</strong></td></tr>
-    <tr><td>التاريخ</td><td>${p.date ? new Date(p.date + 'T00:00:00').toLocaleDateString('ar-EG') : today}</td></tr>
-    <tr><td>المبلغ الكلي</td><td><strong>${total.toLocaleString('ar-EG')} ج.م</strong></td></tr>
-    <tr><td>المدفوع</td><td class="paid">${paid.toLocaleString('ar-EG')} ج.م</td></tr>
-    <tr><td>المتبقي</td><td class="unpaid">${unpaid.toLocaleString('ar-EG')} ج.م</td></tr>
-    ${p.notes ? '<tr><td>ملاحظات</td><td>' + p.notes + '</td></tr>' : ''}
-    </table>${installmentsTable}
-    <p class="total">المبلغ المستحق: ${unpaid.toLocaleString('ar-EG')} ج.م</p>
-    </body></html>`);
+    w.document.write('<html><head><title>ÙØ§ØªÙˆØ±Ø© â€” ' + p.client + '</title><style>body{font-family:Arial,sans-serif;direction:rtl;padding:0;margin:0;color:#333}.invoice{max-width:700px;margin:0 auto;padding:30px}.header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #1877f2;padding-bottom:16px;margin-bottom:24px}.header h1{margin:0;font-size:28px;color:#1877f2}.header p{margin:2px 0;font-size:12px;color:#666}.client-info{background:#f8f9fa;padding:16px;border-radius:8px;margin-bottom:20px}.client-info h3{margin:0 0 8px;color:#1877f2;font-size:14px}.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px}.detail-grid div{padding:6px 0}.detail-grid strong{color:#333}table{width:100%;border-collapse:collapse;margin:12px 0;font-size:13px}th,td{padding:10px;border:1px solid #ddd;text-align:right}th{background:#f0f4ff;font-weight:600}.total-row{font-size:18px;font-weight:bold;color:#1877f2;margin-top:16px;text-align:left;padding:12px;background:#f0f4ff;border-radius:8px}.paid{color:#2e7d32}.unpaid{color:#dc3545}.footer{text-align:center;margin-top:30px;padding-top:16px;border-top:1px solid #eee;font-size:11px;color:#999}</style></head><body><div class="invoice"><div class="header"><div><h1>ÙØ§ØªÙˆØ±Ø©</h1><p>Ø±Ù‚Ù…: ' + p.id.slice(0,8).toUpperCase() + '</p></div><div style="text-align:left"><p><strong>' + BUSINESS_INFO.name + '</strong></p><p>' + BUSINESS_INFO.phone + '</p><p>' + BUSINESS_INFO.address + '</p><p>Ø¨ØªØ§Ø±ÙŠØ®: ' + today + '</p></div></div><div class="client-info"><h3>Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø¹Ù…ÙŠÙ„</h3><div class="detail-grid"><div><strong>Ø§Ù„Ø¹Ù…ÙŠÙ„:</strong> ' + (p.client || 'â€”') + '</div><div><strong>Ø§Ù„ØªÙ„ÙŠÙÙˆÙ†:</strong> ' + (p.phone || 'â€”') + '</div><div><strong>Ø§Ù„Ø®Ø¯Ù…Ø©:</strong> ' + (p.service || 'â€”') + '</div><div><strong>Ø§Ù„Ù…Ø¯Ø©:</strong> ' + (p.duration || 'â€”') + '</div><div><strong>ØªØ§Ø±ÙŠØ® Ø§Ù„Ø¨Ø¯Ø¡:</strong> ' + (p.date ? new Date(p.date + 'T00:00:00').toLocaleDateString('ar-EG') : 'â€”') + '</div><div><strong>Ø·Ø±ÙŠÙ‚Ø© Ø§Ù„Ø¯ÙØ¹:</strong> ' + (p.type === 'once' ? 'Ø¯ÙØ¹Ø© ÙˆØ§Ø­Ø¯Ø©' : 'Ø¯ÙØ¹Ø§Øª') + '</div></div></div><table><thead><tr style="text-align:right"><th>Ø§Ù„Ø¨Ù†Ø¯</th><th>Ø§Ù„Ù…Ø¨Ù„Øº</th></tr></thead><tbody><tr><td style="padding:10px;border:1px solid #ddd">' + (p.service || 'Ø®Ø¯Ù…Ø©') + '</td><td style="padding:10px;border:1px solid #ddd;font-weight:600">' + c.total.toLocaleString('ar-EG') + ' Ø¬.Ù…</td></tr></tbody></table><div class="detail-grid" style="margin-top:12px"><div><strong>Ø§Ù„Ù…Ø¨Ù„Øº Ø§Ù„ÙƒÙ„ÙŠ:</strong> ' + c.total.toLocaleString('ar-EG') + ' Ø¬.Ù…</div><div><strong>Ø§Ù„Ù…Ø¯ÙÙˆØ¹:</strong> <span class="paid">' + c.paid.toLocaleString('ar-EG') + ' Ø¬.Ù…</span></div><div><strong>Ø§Ù„Ù…ØªØ¨Ù‚ÙŠ:</strong> <span class="unpaid">' + c.unpaid.toLocaleString('ar-EG') + ' Ø¬.Ù…</span></div></div>' + installmentsTable + (p.notes ? '<div style="margin-top:12px;padding:12px;background:#fff8e1;border-radius:8px;font-size:13px"><strong>Ù…Ù„Ø§Ø­Ø¸Ø§Øª:</strong> ' + p.notes + '</div>' : '') + '<div class="total-row">Ø§Ù„Ù…Ø¨Ù„Øº Ø§Ù„Ù…Ø³ØªØ­Ù‚: ' + c.unpaid.toLocaleString('ar-EG') + ' Ø¬.Ù…</div><div class="footer"><p>' + BUSINESS_INFO.name + ' â€” ' + BUSINESS_INFO.phone + ' â€” ' + BUSINESS_INFO.address + '</p></div></div></body></html>');
     w.document.close();
     w.print();
 }
